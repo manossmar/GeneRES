@@ -25,11 +25,19 @@ interface Column<T> {
     numeric?: boolean;
 }
 
+interface ActionButton<T> {
+    label: string;
+    icon: React.ReactNode;
+    onClick: (item: T) => void;
+    variant?: 'default' | 'danger';
+}
+
 interface DataTableProps<T> {
     columns: Column<T>[];
     data: T[];
     onEdit?: (item: T) => void;
     onDelete?: (item: T) => void;
+    actionButtons?: ActionButton<T>[];
     enableSearch?: boolean;
     enablePagination?: boolean;
     enableDownload?: boolean;
@@ -44,6 +52,7 @@ export default function DataTable<T extends { id: number | string }>({
     data,
     onEdit,
     onDelete,
+    actionButtons,
     enableSearch = true,
     enablePagination = true,
     enableDownload = false,
@@ -897,7 +906,7 @@ export default function DataTable<T extends { id: number | string }>({
                                         </TableCell>
                                     );
                                 })}
-                            {(onEdit || onDelete) && (
+                            {(actionButtons || onEdit || onDelete) && (
                                 <TableCell
                                     isHeader
                                     className="px-5 py-2.5 font-bold text-gray-700 text-start text-sm dark:text-gray-200 w-px whitespace-nowrap"
@@ -1010,48 +1019,68 @@ export default function DataTable<T extends { id: number | string }>({
                                             </TableCell>
                                         );
                                     })}
-                                {(onEdit || onDelete) && (
+                                {(actionButtons || onEdit || onDelete) && (
                                     <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 w-px whitespace-nowrap">
                                         <div className="flex items-center gap-3">
-                                            {onEdit && (
-                                                <button
-                                                    onClick={() => onEdit(item)}
-                                                    className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-500 transition-colors"
-                                                >
-                                                    <svg
-                                                        className="w-5 h-5"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
+                                            {actionButtons ? (
+                                                // Custom action buttons
+                                                actionButtons.map((action, index) => (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => action.onClick(item)}
+                                                        className={`transition-colors ${action.variant === 'danger'
+                                                                ? 'text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-500'
+                                                                : 'text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-500'
+                                                            }`}
+                                                        title={action.label}
                                                     >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            )}
-                                            {onDelete && (
-                                                <button
-                                                    onClick={() => onDelete(item)}
-                                                    className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-500 transition-colors"
-                                                >
-                                                    <svg
-                                                        className="w-5 h-5"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                        />
-                                                    </svg>
-                                                </button>
+                                                        {action.icon}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                // Backward compatibility: default Edit/Delete buttons
+                                                <>
+                                                    {onEdit && (
+                                                        <button
+                                                            onClick={() => onEdit(item)}
+                                                            className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-500 transition-colors"
+                                                        >
+                                                            <svg
+                                                                className="w-5 h-5"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2}
+                                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                    {onDelete && (
+                                                        <button
+                                                            onClick={() => onDelete(item)}
+                                                            className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-500 transition-colors"
+                                                        >
+                                                            <svg
+                                                                className="w-5 h-5"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2}
+                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </TableCell>
