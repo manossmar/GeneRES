@@ -1,3 +1,4 @@
+import { useState } from "react";
 import DataTable from "../../common/DataTable";
 
 interface Employee {
@@ -10,7 +11,7 @@ interface Employee {
     salary: string;
 }
 
-const tableData: Employee[] = [
+const initialTableData: Employee[] = [
     {
         id: 1,
         name: "Tiger Nixon",
@@ -149,6 +150,17 @@ const tableData: Employee[] = [
 ];
 
 export default function DataTable3() {
+    const [tableData, setTableData] = useState<Employee[]>(initialTableData);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [formData, setFormData] = useState<Omit<Employee, 'id'>>({
+        name: "",
+        position: "",
+        office: "",
+        age: 0,
+        startDate: "",
+        salary: "",
+    });
+
     const handleEdit = (item: Employee) => {
         console.log("Edit item:", item);
         alert(`Edit ${item.name}`);
@@ -163,26 +175,176 @@ export default function DataTable3() {
         console.log("Selected items:", selectedItems);
     };
 
+    const handleAddNew = () => {
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setFormData({
+            name: "",
+            position: "",
+            office: "",
+            age: 0,
+            startDate: "",
+            salary: "",
+        });
+    };
+
+    const handleSave = () => {
+        const newEmployee: Employee = {
+            id: Math.max(...tableData.map(e => e.id)) + 1,
+            ...formData
+        };
+        setTableData([...tableData, newEmployee]);
+        handleCloseModal();
+    };
+
     return (
-        <DataTable
-            columns={[
-                { key: "name", label: "Name", sortable: true, resizable: true },
-                { key: "position", label: "Position", sortable: true, resizable: true },
-                { key: "office", label: "Office", sortable: true, resizable: true },
-                { key: "age", label: "Age", sortable: true, resizable: true, numeric: true },
-                { key: "startDate", label: "Start Date", sortable: true, resizable: true },
-                { key: "salary", label: "Salary", sortable: true, resizable: true, numeric: true },
-            ]}
-            data={tableData}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onSelectionChange={handleSelectionChange}
-            enableSearch={true}
-            enablePagination={true}
-            enableShowEntries={true}
-            enableFilter={true}
-            enableAutoFilter={true}
-            enableDownload={true}
-        />
+        <>
+            <DataTable
+                columns={[
+                    { key: "name", label: "Name", sortable: true, resizable: true },
+                    { key: "position", label: "Position", sortable: true, resizable: true },
+                    { key: "office", label: "Office", sortable: true, resizable: true },
+                    { key: "age", label: "Age", sortable: true, resizable: true, numeric: true },
+                    { key: "startDate", label: "Start Date", sortable: true, resizable: true },
+                    { key: "salary", label: "Salary", sortable: true, resizable: true, numeric: true },
+                ]}
+                data={tableData}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onAddNew={handleAddNew}
+                onSelectionChange={handleSelectionChange}
+                enableSearch={true}
+                enablePagination={true}
+                enableShowEntries={true}
+                enableFilter={true}
+                enableAutoFilter={true}
+                enableDownload={true}
+            />
+
+            {/* Add New Modal */}
+            {isModalOpen && (
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 bg-black/50 z-50"
+                        onClick={handleCloseModal}
+                    />
+
+                    {/* Modal */}
+                    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+                        <div
+                            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md pointer-events-auto"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Add New Employee
+                                </h3>
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Form */}
+                            <div className="px-6 py-4 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Position
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.position}
+                                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Office
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.office}
+                                        onChange={(e) => setFormData({ ...formData, office: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Age
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={formData.age || ""}
+                                        onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 0 })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Start Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="YYYY/MM/DD"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Salary
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="$0"
+                                        value={formData.salary}
+                                        onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+        </>
     );
 }
