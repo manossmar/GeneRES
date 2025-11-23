@@ -742,7 +742,7 @@ export default function DataTable<T extends { id: number | string }>({
                                                 e.preventDefault();
                                                 handleColumnMenuClick(e, String(column.key));
                                             }}
-                                            className={`relative px-5 py-2.5 font-bold text-gray-700 text-start text-sm dark:text-gray-200 border-r border-gray-200 dark:border-white/[0.05] ${column.sortable
+                                            className={`relative px-3 py-2.5 font-bold text-gray-700 text-start text-sm dark:text-gray-200 border-r border-gray-200 dark:border-white/[0.05] ${column.sortable
                                                 ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.05]"
                                                 : ""
                                                 } ${isDragging ? "opacity-50" : ""} ${isDropTarget ? "bg-brand-100 dark:bg-brand-900/30 border-l-4 border-l-brand-500" : ""
@@ -799,7 +799,7 @@ export default function DataTable<T extends { id: number | string }>({
                                                         </div>
                                                     )}
                                                     <button
-                                                        className="column-dropdown p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                                                        className="column-dropdown py-1 pl-1 pr-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                                                         onClick={(e) => handleColumnMenuClick(e, String(column.key))}
                                                     >
                                                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
@@ -1007,7 +1007,7 @@ export default function DataTable<T extends { id: number | string }>({
                                         );
                                     })}
                                 {(onEdit || onDelete) && (
-                                    <TableCell className="px-5 py-2 border-r border-gray-200 dark:border-white/[0.05]">
+                                    <TableCell className="px-3 py-2 border-r border-gray-200 dark:border-white/[0.05]">
                                         {/* Actions column filter cell - empty */}
                                         {null}
                                     </TableCell>
@@ -1019,7 +1019,7 @@ export default function DataTable<T extends { id: number | string }>({
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                         {currentData.map((item) => (
                             <TableRow key={item.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] ${selectedIds.has(item.id) ? "bg-gray-100 dark:bg-white/[0.05]" : ""}`}>
-                                <TableCell className="px-5 py-4 text-start border-r border-gray-100 dark:border-white/[0.05]">
+                                <TableCell className="px-3 py-4 text-start border-r border-gray-100 dark:border-white/[0.05]">
                                     <input
                                         type="checkbox"
                                         className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
@@ -1036,7 +1036,7 @@ export default function DataTable<T extends { id: number | string }>({
                                         return (
                                             <TableCell
                                                 key={String(column.key)}
-                                                className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 border-r border-gray-100 dark:border-white/[0.05]"
+                                                className="px-3 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 border-r border-gray-100 dark:border-white/[0.05]"
                                             >
                                                 <div className="truncate">
                                                     {column.render
@@ -1047,7 +1047,7 @@ export default function DataTable<T extends { id: number | string }>({
                                         );
                                     })}
                                 {(actionButtons || onEdit || onDelete) && (
-                                    <TableCell className="px-5 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 w-px whitespace-nowrap">
+                                    <TableCell className="px-3 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 w-px whitespace-nowrap">
                                         <div className="flex items-center gap-3">
                                             {actionButtons ? (
                                                 // Custom action buttons
