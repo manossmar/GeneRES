@@ -38,6 +38,8 @@ interface DataTableProps<T> {
     onEdit?: (item: T) => void;
     onDelete?: (item: T) => void;
     actionButtons?: ActionButton<T>[];
+    showEdit?: boolean;
+    showDelete?: boolean;
     onAddNew?: () => void;
     enableSearch?: boolean;
     enablePagination?: boolean;
@@ -54,6 +56,8 @@ export default function DataTable<T extends { id: number | string }>({
     onEdit,
     onDelete,
     actionButtons,
+    showEdit = true,
+    showDelete = true,
     onAddNew,
     enableSearch = true,
     enablePagination = true,
@@ -1063,7 +1067,7 @@ export default function DataTable<T extends { id: number | string }>({
                                             ) : (
                                                 // Backward compatibility: default Edit/Delete buttons
                                                 <>
-                                                    {onEdit && (
+                                                    {onEdit && showEdit && (
                                                         <button
                                                             onClick={() => onEdit(item)}
                                                             className="text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-500 transition-colors"
@@ -1083,7 +1087,7 @@ export default function DataTable<T extends { id: number | string }>({
                                                             </svg>
                                                         </button>
                                                     )}
-                                                    {onDelete && (
+                                                    {onDelete && showDelete && (
                                                         <button
                                                             onClick={() => onDelete(item)}
                                                             className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-500 transition-colors"

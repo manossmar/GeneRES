@@ -1,4 +1,6 @@
+import { useState } from "react";
 import DataTable from "../../common/DataTable";
+import { useNotification } from "../../../context/NotificationContext";
 
 interface Customer {
     id: number;
@@ -10,7 +12,7 @@ interface Customer {
     salary: string;
 }
 
-const tableData: Customer[] = [
+const initialTableData: Customer[] = [
     {
         id: 1,
         name: "Tiger Nixon",
@@ -149,16 +151,28 @@ const tableData: Customer[] = [
 ];
 
 export default function CustomerTable() {
+    const [tableData, setTableData] = useState<Customer[]>(initialTableData);
+    const { showConfirmation, showNotification } = useNotification();
+
     const handleEdit = (item: Customer) => {
         console.log("Edit customer:", item);
         alert(`Edit ${item.name}`);
     };
 
     const handleDelete = (item: Customer) => {
-        console.log("Delete customer:", item);
-        if (confirm(`Are you sure you want to delete ${item.name}?`)) {
-            alert(`Deleted ${item.name}`);
-        }
+        showConfirmation(
+            "Delete Customer",
+            `Are you sure you want to delete ${item.name}?`,
+            () => {
+                // On confirm: delete the customer
+                setTableData((prev) => prev.filter((c) => c.id !== item.id));
+                showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
+            },
+            () => {
+                // On cancel: do nothing (optional callback)
+                console.log("Delete cancelled");
+            }
+        );
     };
 
     const handleSelectionChange = (selectedItems: Customer[]) => {

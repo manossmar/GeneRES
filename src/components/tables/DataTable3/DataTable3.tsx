@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DataTable from "../../common/DataTable";
+import { useNotification } from "../../../context/NotificationContext";
 
 interface Employee {
     id: number;
@@ -161,14 +162,27 @@ export default function DataTable3() {
         salary: "",
     });
 
+    const { showConfirmation, showNotification } = useNotification();
+
     const handleEdit = (item: Employee) => {
         console.log("Edit item:", item);
         alert(`Edit ${item.name}`);
     };
 
     const handleDelete = (item: Employee) => {
-        console.log("Delete item:", item);
-        alert(`Delete ${item.name}`);
+        showConfirmation(
+            "Delete Employee",
+            `Are you sure you want to delete ${item.name}?`,
+            () => {
+                // On confirm: delete the employee
+                setTableData((prev) => prev.filter((e) => e.id !== item.id));
+                showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
+            },
+            () => {
+                // On cancel: do nothing (optional callback)
+                console.log("Delete cancelled");
+            }
+        );
     };
 
     const handleSelectionChange = (selectedItems: Employee[]) => {
@@ -197,6 +211,7 @@ export default function DataTable3() {
             ...formData
         };
         setTableData([...tableData, newEmployee]);
+        showNotification('success', 'Employee Added', `${formData.name} has been added successfully.`);
         handleCloseModal();
     };
 

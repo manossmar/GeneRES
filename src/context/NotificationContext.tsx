@@ -10,6 +10,9 @@ interface Notification {
     buttonText?: string;
     buttonLink?: string;
     duration?: number;
+    isConfirmation?: boolean;
+    onConfirm?: () => void;
+    onCancel?: () => void;
 }
 
 interface NotificationContextType {
@@ -18,6 +21,12 @@ interface NotificationContextType {
         header: string,
         text: string,
         options?: { buttonText?: string; buttonLink?: string; duration?: number }
+    ) => void;
+    showConfirmation: (
+        header: string,
+        text: string,
+        onConfirm: () => void,
+        onCancel?: () => void
     ) => void;
     removeNotification: (id: string) => void;
 }
@@ -48,12 +57,35 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         []
     );
 
+    const showConfirmation = useCallback(
+        (
+            header: string,
+            text: string,
+            onConfirm: () => void,
+            onCancel?: () => void
+        ) => {
+            const id = Math.random().toString(36).substr(2, 9);
+            const newNotification: Notification = {
+                id,
+                type: 'warning',
+                header,
+                text,
+                isConfirmation: true,
+                onConfirm,
+                onCancel,
+            };
+
+            setNotifications((prev) => [...prev, newNotification]);
+        },
+        []
+    );
+
     const removeNotification = useCallback((id: string) => {
         setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, []);
 
     return (
-        <NotificationContext.Provider value={{ showNotification, removeNotification }}>
+        <NotificationContext.Provider value={{ showNotification, showConfirmation, removeNotification }}>
             {children}
             <div className="fixed top-5 right-5 z-999999 flex flex-col gap-4">
                 {notifications.map((notification) => (
@@ -72,16 +104,19 @@ const NotificationItem: React.FC<{ notification: Notification; onDismiss: () => 
     notification,
     onDismiss,
 }) => {
-    const { type, header, text, buttonText, buttonLink, duration } = notification;
+    const { type, header, text, buttonText, buttonLink, duration, isConfirmation, onConfirm, onCancel } = notification;
     const [isExiting, setIsExiting] = useState(false);
 
     useEffect(() => {
+        // Don't auto-dismiss confirmations
+        if (isConfirmation) return;
+
         const timer = setTimeout(() => {
             setIsExiting(true);
         }, (duration || 3) * 1000);
 
         return () => clearTimeout(timer);
-    }, [duration]);
+    }, [duration, isConfirmation]);
 
     useEffect(() => {
         if (isExiting) {
@@ -91,6 +126,20 @@ const NotificationItem: React.FC<{ notification: Notification; onDismiss: () => 
             return () => clearTimeout(timer);
         }
     }, [isExiting, onDismiss]);
+
+    const handleConfirm = () => {
+        if (onConfirm) onConfirm();
+        // Wait for success notification to complete its full cycle (3s display + 0.5s exit animation - 0.5s overlap)
+        // Then both notifications will slide out together
+        setTimeout(() => {
+            setIsExiting(true);
+        }, 3000);
+    };
+
+    const handleCancel = () => {
+        if (onCancel) onCancel();
+        setIsExiting(true);
+    };
 
     let backgroundColor, borderColor, color, icon;
 
@@ -144,23 +193,39 @@ const NotificationItem: React.FC<{ notification: Notification; onDismiss: () => 
                 backgroundColor,
                 borderColor,
                 color,
-                marginBottom: '1rem',
+                marginBottom: '0.085rem',
             }}
         >
             <div className="flex items-start gap-3">
                 <div className="-mt-0.5" style={{ color: borderColor }}>
                     {icon}
                 </div>
-                <div>
+                <div className="flex-1">
                     <h4 className="mb-1 text-sm font-semibold text-white">{header}</h4>
                     <p className="text-sm text-white">{text}</p>
-                    {buttonText && buttonLink && (
+                    {buttonText && buttonLink && !isConfirmation && (
                         <a
                             href={buttonLink}
                             className="mt-3 inline-block text-sm font-medium text-white underline"
                         >
                             {buttonText}
                         </a>
+                    )}
+                    {isConfirmation && (
+                        <div className="mt-3 flex gap-3">
+                            <button
+                                onClick={handleCancel}
+                                className="px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirm}
+                                className="px-4 py-1.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                            >
+                                Confirm
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
