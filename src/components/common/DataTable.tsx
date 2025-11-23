@@ -1197,32 +1197,7 @@ export default function DataTable<T extends { id: number | string }>({
                 />
             )}
 
-            {/* Drag-to-Hide Drop Zone */}
-            {dragState.draggingColumn && (
-                <div
-                    className="fixed inset-0 z-40"
-                    style={{ pointerEvents: 'auto' }}
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const dragDistance = e.clientY - dragState.dragStartY;
-                        if (dragDistance > 150) {
-                            dragHandlers.handleDragOver(e, '');
-                        }
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (dragState.dragToHide && dragState.draggingColumn) {
-                            handleHideColumn(dragState.draggingColumn);
-                        }
-                        dragHandlers.handleDragEnd();
-                    }}
-                    onDragLeave={() => {
-                        dragHandlers.handleDragLeave();
-                    }}
-                />
-            )}
+
         </div>
     );
 }
