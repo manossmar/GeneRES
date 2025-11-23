@@ -1,5 +1,5 @@
 type BadgeVariant = "light" | "solid";
-type BadgeSize = "sm" | "md";
+type BadgeSize = "xs" | "sm" | "md";
 type BadgeColor =
   | "primary"
   | "success"
@@ -16,6 +16,7 @@ interface BadgeProps {
   startIcon?: React.ReactNode; // Icon at the start
   endIcon?: React.ReactNode; // Icon at the end
   children: React.ReactNode; // Badge content
+  onClick?: () => void; // Optional click handler
 }
 
 const Badge: React.FC<BadgeProps> = ({
@@ -25,14 +26,16 @@ const Badge: React.FC<BadgeProps> = ({
   startIcon,
   endIcon,
   children,
+  ...props
 }) => {
   const baseStyles =
-    "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium";
+    "inline-flex items-center justify-center gap-1 rounded-full font-medium";
 
   // Define size styles
   const sizeStyles = {
-    sm: "text-theme-xs", // Smaller padding and font size
-    md: "text-sm", // Default padding and font size
+    xs: "px-1.5 py-0.5 text-[10px]", // Extra small padding and font size
+    sm: "px-2 py-0.5 text-theme-xs", // Smaller padding and font size
+    md: "px-2.5 py-0.5 text-sm", // Default padding and font size
   };
 
   // Define color styles for variants
@@ -64,6 +67,19 @@ const Badge: React.FC<BadgeProps> = ({
   // Get styles based on size and color variant
   const sizeClass = sizeStyles[size];
   const colorStyles = variants[variant][color];
+
+  if (props.onClick) {
+    return (
+      <button
+        onClick={props.onClick}
+        className={`${baseStyles} ${sizeClass} ${colorStyles} hover:opacity-80 transition-opacity`}
+      >
+        {startIcon && <span className="mr-1">{startIcon}</span>}
+        {children}
+        {endIcon && <span className="ml-1">{endIcon}</span>}
+      </button>
+    );
+  }
 
   return (
     <span className={`${baseStyles} ${sizeClass} ${colorStyles}`}>

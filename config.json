@@ -1,0 +1,12 @@
+{
+  "version": "0.5.02",
+  "options": {
+    "ShowPromoBox": false,
+    "PromoBoxInfo": {
+      "header": "This is a Demo Promo",
+      "Text": "This is where we place adds that will be displayed when needed.",
+      "ButtonText": "Click me",
+      "ButtonLink": "https://nodejs.org/en"
+    }
+  }
+}
