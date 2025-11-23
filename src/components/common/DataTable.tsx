@@ -1195,18 +1195,50 @@ export default function DataTable<T extends { id: number | string }>({
                         >
                             Previous
                         </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                            <button
-                                key={page}
-                                onClick={() => goToPage(page)}
-                                className={`px-3 py-1 border rounded text-theme-sm ${currentPage === page
-                                    ? "bg-brand-500 text-white border-brand-500"
-                                    : "border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                    }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
+                        {(() => {
+                            const pages = [];
+                            const maxVisible = 7; // Number of buttons to show (excluding Prev/Next)
+
+                            if (totalPages <= maxVisible) {
+                                // Show all pages if they fit
+                                for (let i = 1; i <= totalPages; i++) {
+                                    pages.push(i);
+                                }
+                            } else {
+                                // Logic for stable width (always show ~7 items)
+                                if (currentPage < 5) {
+                                    // Near Start: 1 2 3 4 5 ... Total
+                                    pages.push(1, 2, 3, 4, 5, '...', totalPages);
+                                } else if (currentPage > totalPages - 4) {
+                                    // Near End: 1 ... Total-4 Total-3 Total-2 Total-1 Total
+                                    pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                                } else {
+                                    // Middle: 1 ... Current-1 Current Current+1 ... Total
+                                    pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                                }
+                            }
+
+                            return pages.map((page, index) => {
+                                if (page === '...') {
+                                    return (
+                                        <span key={`dots-${index}`} className="px-2 text-gray-400">...</span>
+                                    );
+                                }
+
+                                return (
+                                    <button
+                                        key={page}
+                                        onClick={() => goToPage(page as number)}
+                                        className={`px-3 py-1 border rounded text-theme-sm w-8 h-8 flex items-center justify-center ${currentPage === page
+                                            ? "bg-brand-500 text-white border-brand-500"
+                                            : "border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                            }`}
+                                    >
+                                        {page}
+                                    </button>
+                                );
+                            });
+                        })()}
                         <button
                             onClick={() => goToPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
