@@ -7,24 +7,29 @@ import { EventInput, DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { Modal } from "../components/ui/modal";
 import { useModal } from "../hooks/useModal";
 import PageMeta from "../components/common/PageMeta";
+import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
 
 interface CalendarEvent extends EventInput {
+  id?: string;
   extendedProps: {
     calendar: string;
+    notes?: string;
   };
 }
 
 const Calendar: React.FC = () => {
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
-    null
-  );
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventTitle, setEventTitle] = useState("");
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventLevel, setEventLevel] = useState("");
+  const [eventNotes, setEventNotes] = useState("");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const calendarRef = useRef<FullCalendar>(null);
   const { isOpen, openModal, closeModal } = useModal();
+  const { token } = useAuth();
+  const { showNotification, showConfirmation } = useNotification();
 
   const calendarsEvents = {
     Danger: "danger",
@@ -33,30 +38,38 @@ const Calendar: React.FC = () => {
     Warning: "warning",
   };
 
+  // Load events from database
   useEffect(() => {
-    // Initialize with some events
-    setEvents([
-      {
-        id: "1",
-        title: "Event Conf.",
-        start: new Date().toISOString().split("T")[0],
-        extendedProps: { calendar: "Danger" },
-      },
-      {
-        id: "2",
-        title: "Meeting",
-        start: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-        extendedProps: { calendar: "Success" },
-      },
-      {
-        id: "3",
-        title: "Workshop",
-        start: new Date(Date.now() + 172800000).toISOString().split("T")[0],
-        end: new Date(Date.now() + 259200000).toISOString().split("T")[0],
-        extendedProps: { calendar: "Primary" },
-      },
-    ]);
+    loadEvents();
   }, []);
+
+  const loadEvents = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/calendar/events', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedEvents = data.map((event: any) => ({
+          id: event.id.toString(),
+          title: event.title,
+          start: event.start_date,
+          end: event.end_date,
+          extendedProps: {
+            calendar: event.event_level,
+            notes: event.notes,
+          },
+        }));
+        setEvents(formattedEvents);
+      }
+    } catch (error) {
+      console.error('Error loading events:', error);
+      showNotification('error', 'Error', 'Failed to load calendar events');
+    }
+  };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     resetModalFields();
@@ -72,39 +85,70 @@ const Calendar: React.FC = () => {
     setEventStartDate(event.start?.toISOString().split("T")[0] || "");
     setEventEndDate(event.end?.toISOString().split("T")[0] || "");
     setEventLevel(event.extendedProps.calendar);
+    setEventNotes(event.extendedProps.notes || "");
     openModal();
   };
 
-  const handleAddOrUpdateEvent = () => {
-    if (selectedEvent) {
-      // Update existing event
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === selectedEvent.id
-            ? {
-                ...event,
-                title: eventTitle,
-                start: eventStartDate,
-                end: eventEndDate,
-                extendedProps: { calendar: eventLevel },
-              }
-            : event
-        )
-      );
-    } else {
-      // Add new event
-      const newEvent: CalendarEvent = {
-        id: Date.now().toString(),
-        title: eventTitle,
-        start: eventStartDate,
-        end: eventEndDate,
-        allDay: true,
-        extendedProps: { calendar: eventLevel },
-      };
-      setEvents((prevEvents) => [...prevEvents, newEvent]);
+  const handleAddOrUpdateEvent = async () => {
+    if (!eventTitle || !eventStartDate) {
+      showNotification('warning', 'Validation Error', 'Title and start date are required');
+      return;
     }
-    closeModal();
-    resetModalFields();
+
+    try {
+      if (selectedEvent) {
+        // Update existing event
+        const response = await fetch(`http://localhost:3002/api/calendar/events/${selectedEvent.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: eventTitle,
+            start_date: eventStartDate,
+            end_date: eventEndDate || null,
+            event_level: eventLevel,
+            notes: eventNotes,
+          }),
+        });
+
+        if (response.ok) {
+          showNotification('success', 'Updated', 'Event updated successfully');
+          await loadEvents();
+        } else {
+          showNotification('error', 'Error', 'Failed to update event');
+        }
+      } else {
+        // Add new event
+        const response = await fetch('http://localhost:3002/api/calendar/events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: eventTitle,
+            start_date: eventStartDate,
+            end_date: eventEndDate || null,
+            event_level: eventLevel,
+            notes: eventNotes,
+          }),
+        });
+
+        if (response.ok) {
+          showNotification('success', 'Created', 'Event created successfully');
+          await loadEvents();
+        } else {
+          showNotification('error', 'Error', 'Failed to create event');
+        }
+      }
+      closeModal();
+      resetModalFields();
+    } catch (error) {
+      console.error('Error saving event:', error);
+      showNotification('error', 'Error', 'Failed to save event');
+    }
   };
 
   const resetModalFields = () => {
@@ -112,7 +156,39 @@ const Calendar: React.FC = () => {
     setEventStartDate("");
     setEventEndDate("");
     setEventLevel("");
+    setEventNotes("");
     setSelectedEvent(null);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!selectedEvent) return;
+
+    showConfirmation(
+      "Delete Event",
+      `Are you sure you want to delete "${eventTitle}"?`,
+      async () => {
+        try {
+          const response = await fetch(`http://localhost:3002/api/calendar/events/${selectedEvent.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            showNotification('success', 'Deleted', 'Event deleted successfully');
+            await loadEvents();
+            closeModal();
+            resetModalFields();
+          } else {
+            showNotification('error', 'Error', 'Failed to delete event');
+          }
+        } catch (error) {
+          console.error('Error deleting event:', error);
+          showNotification('error', 'Error', 'Failed to delete event');
+        }
+      }
+    );
   };
 
   return (
@@ -201,9 +277,8 @@ const Calendar: React.FC = () => {
                             />
                             <span className="flex items-center justify-center w-5 h-5 mr-2 border border-gray-300 rounded-full box dark:border-gray-700">
                               <span
-                                className={`h-2 w-2 rounded-full bg-white ${
-                                  eventLevel === key ? "block" : "hidden"
-                                }`}
+                                className={`h-2 w-2 rounded-full bg-white ${eventLevel === key ? "block" : "hidden"
+                                  }`}
                               ></span>
                             </span>
                           </span>
@@ -244,22 +319,49 @@ const Calendar: React.FC = () => {
                   />
                 </div>
               </div>
+
+              <div className="mt-6">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                  Notes
+                </label>
+                <textarea
+                  id="event-notes"
+                  value={eventNotes}
+                  onChange={(e) => setEventNotes(e.target.value)}
+                  rows={4}
+                  className="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                  placeholder="Add any additional notes..."
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-3 mt-6 modal-footer sm:justify-end">
-              <button
-                onClick={closeModal}
-                type="button"
-                className="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleAddOrUpdateEvent}
-                type="button"
-                className="btn btn-success btn-update-event flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
-              >
-                {selectedEvent ? "Update Changes" : "Add Event"}
-              </button>
+            <div className="flex items-center gap-3 mt-6 modal-footer sm:justify-between">
+              <div>
+                {selectedEvent && (
+                  <button
+                    onClick={handleDeleteEvent}
+                    type="button"
+                    className="flex justify-center rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-500 dark:hover:bg-red-900/10"
+                  >
+                    Delete Event
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={closeModal}
+                  type="button"
+                  className="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleAddOrUpdateEvent}
+                  type="button"
+                  className="btn btn-success btn-update-event flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
+                >
+                  {selectedEvent ? "Update Changes" : "Add Event"}
+                </button>
+              </div>
             </div>
           </div>
         </Modal>

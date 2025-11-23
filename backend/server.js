@@ -6,6 +6,8 @@ const path = require('path');
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const calendarRoutes = require('./routes/calendar');
+const customersRoutes = require('./routes/customers');
 const authMiddleware = require('./middleware/auth');
 const setupDatabase = require('./db_setup');
 
@@ -33,6 +35,8 @@ app.use(express.static(path.join(__dirname, '../frontend/src')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', authMiddleware, userRoutes);
+app.use('/api/calendar', authMiddleware, calendarRoutes);
+app.use('/api/customers', authMiddleware, customersRoutes);
 
 const port = process.env.PORT || 3002;
 

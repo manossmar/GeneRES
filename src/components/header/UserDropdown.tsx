@@ -41,9 +41,9 @@ export default function UserDropdown() {
 
   const profilePictureUrl = useMemo(() => {
     return user?.picture && token
-      ? `http://localhost:3002${user.picture}?token=${token}&t=${new Date().getTime()}`
+      ? `http://localhost:3002${user.picture}?token=${token}`
       : null;
-  }, [user, token]);
+  }, [user?.picture, token]);
 
   return (
     <div className="relative">

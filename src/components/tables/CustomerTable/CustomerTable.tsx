@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DataTable from "../../common/DataTable";
 import { useNotification } from "../../../context/NotificationContext";
+import { useAuth } from "../../../context/AuthContext";
 
 interface Customer {
     id: number;
@@ -12,164 +13,96 @@ interface Customer {
     salary: string;
 }
 
-const initialTableData: Customer[] = [
-    {
-        id: 1,
-        name: "Tiger Nixon",
-        position: "System Architect",
-        office: "Edinburgh",
-        age: 61,
-        startDate: "2011/04/25",
-        salary: "$320,800",
-    },
-    {
-        id: 2,
-        name: "Garrett Winters",
-        position: "Accountant",
-        office: "Tokyo",
-        age: 63,
-        startDate: "2011/07/25",
-        salary: "$170,750",
-    },
-    {
-        id: 3,
-        name: "Ashton Cox",
-        position: "Junior Technical Author",
-        office: "San Francisco",
-        age: 66,
-        startDate: "2009/01/12",
-        salary: "$86,000",
-    },
-    {
-        id: 4,
-        name: "Cedric Kelly",
-        position: "Senior Javascript Developer",
-        office: "Edinburgh",
-        age: 22,
-        startDate: "2012/03/29",
-        salary: "$433,060",
-    },
-    {
-        id: 5,
-        name: "Airi Satou",
-        position: "Accountant",
-        office: "Tokyo",
-        age: 33,
-        startDate: "2008/11/28",
-        salary: "$162,700",
-    },
-    {
-        id: 6,
-        name: "Brielle Williamson",
-        position: "Integration Specialist",
-        office: "New York",
-        age: 61,
-        startDate: "2012/12/02",
-        salary: "$372,000",
-    },
-    {
-        id: 7,
-        name: "Herrod Chandler",
-        position: "Sales Assistant",
-        office: "San Francisco",
-        age: 59,
-        startDate: "2012/08/06",
-        salary: "$137,500",
-    },
-    {
-        id: 8,
-        name: "Rhona Davidson",
-        position: "Integration Specialist",
-        office: "Tokyo",
-        age: 55,
-        startDate: "2010/10/14",
-        salary: "$327,900",
-    },
-    {
-        id: 9,
-        name: "Colleen Hurst",
-        position: "Javascript Developer",
-        office: "San Francisco",
-        age: 39,
-        startDate: "2009/09/15",
-        salary: "$205,500",
-    },
-    {
-        id: 10,
-        name: "Sonya Frost",
-        position: "Software Engineer",
-        office: "Edinburgh",
-        age: 23,
-        startDate: "2008/12/13",
-        salary: "$103,600",
-    },
-    {
-        id: 11,
-        name: "Jena Gaines",
-        position: "Office Manager",
-        office: "London",
-        age: 30,
-        startDate: "2008/12/19",
-        salary: "$90,560",
-    },
-    {
-        id: 12,
-        name: "Quinn Flynn",
-        position: "Support Lead",
-        office: "Edinburgh",
-        age: 22,
-        startDate: "2013/03/03",
-        salary: "$342,000",
-    },
-    {
-        id: 13,
-        name: "Charde Marshall",
-        position: "Regional Director",
-        office: "San Francisco",
-        age: 36,
-        startDate: "2008/10/16",
-        salary: "$470,600",
-    },
-    {
-        id: 14,
-        name: "Haley Kennedy",
-        position: "Senior Marketing Designer",
-        office: "London",
-        age: 43,
-        startDate: "2012/12/18",
-        salary: "$313,500",
-    },
-    {
-        id: 15,
-        name: "Tatyana Fitzpatrick",
-        position: "Regional Director",
-        office: "London",
-        age: 19,
-        startDate: "2010/03/17",
-        salary: "$385,750",
-    },
-];
-
 export default function CustomerTable() {
-    const [tableData, setTableData] = useState<Customer[]>(initialTableData);
+    const [tableData, setTableData] = useState<Customer[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+    const [formData, setFormData] = useState<Omit<Customer, 'id'>>({
+        name: "",
+        position: "",
+        office: "",
+        age: 0,
+        startDate: "",
+        salary: "",
+    });
     const { showConfirmation, showNotification } = useNotification();
+    const { token } = useAuth();
+
+    // Load customers from database
+    useEffect(() => {
+        if (token) {
+            loadCustomers();
+        }
+    }, [token]);
+
+    const loadCustomers = async () => {
+        try {
+            const response = await fetch('http://localhost:3002/api/customers', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Map database fields to component fields
+                const formattedData = data.map((customer: any) => ({
+                    id: customer.id,
+                    name: customer.name,
+                    position: customer.position || "",
+                    office: customer.office || "",
+                    age: customer.age || 0,
+                    startDate: customer.start_date || "",
+                    salary: customer.salary || "",
+                }));
+                setTableData(formattedData);
+            } else {
+                showNotification('error', 'Error', 'Failed to load customers');
+            }
+        } catch (error) {
+            console.error('Error loading customers:', error);
+            showNotification('error', 'Error', 'Failed to load customers');
+        }
+    };
 
     const handleEdit = (item: Customer) => {
-        console.log("Edit customer:", item);
-        alert(`Edit ${item.name}`);
+        setEditingCustomer(item);
+        setFormData({
+            name: item.name,
+            position: item.position,
+            office: item.office,
+            age: item.age,
+            startDate: item.startDate,
+            salary: item.salary,
+        });
+        setIsModalOpen(true);
     };
 
     const handleDelete = (item: Customer) => {
         showConfirmation(
             "Delete Customer",
             `Are you sure you want to delete ${item.name}?`,
-            () => {
-                // On confirm: delete the customer
-                setTableData((prev) => prev.filter((c) => c.id !== item.id));
-                showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
+            async () => {
+                try {
+                    const response = await fetch(`http://localhost:3002/api/customers/${item.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+
+                    if (response.ok) {
+                        showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
+                        await loadCustomers();
+                    } else {
+                        showNotification('error', 'Error', 'Failed to delete customer');
+                    }
+                } catch (error) {
+                    console.error('Error deleting customer:', error);
+                    showNotification('error', 'Error', 'Failed to delete customer');
+                }
             },
             () => {
-                // On cancel: do nothing (optional callback)
                 console.log("Delete cancelled");
             }
         );
@@ -179,66 +112,280 @@ export default function CustomerTable() {
         console.log("Selected customers:", selectedItems);
     };
 
+    const handleAddNew = () => {
+        setEditingCustomer(null);
+        setFormData({
+            name: "",
+            position: "",
+            office: "",
+            age: 0,
+            startDate: "",
+            salary: "",
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setEditingCustomer(null);
+        setFormData({
+            name: "",
+            position: "",
+            office: "",
+            age: 0,
+            startDate: "",
+            salary: "",
+        });
+    };
+
+    const handleSave = async () => {
+        if (!formData.name) {
+            showNotification('warning', 'Validation Error', 'Name is required');
+            return;
+        }
+
+        try {
+            if (editingCustomer) {
+                // Update existing customer
+                const response = await fetch(`http://localhost:3002/api/customers/${editingCustomer.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        name: formData.name,
+                        position: formData.position,
+                        office: formData.office,
+                        age: formData.age,
+                        start_date: formData.startDate,
+                        salary: formData.salary,
+                    }),
+                });
+
+                if (response.ok) {
+                    showNotification('success', 'Updated', `${formData.name} has been updated successfully.`);
+                    await loadCustomers();
+                } else {
+                    showNotification('error', 'Error', 'Failed to update customer');
+                }
+            } else {
+                // Create new customer
+                const response = await fetch('http://localhost:3002/api/customers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        name: formData.name,
+                        position: formData.position,
+                        office: formData.office,
+                        age: formData.age,
+                        start_date: formData.startDate,
+                        salary: formData.salary,
+                    }),
+                });
+
+                if (response.ok) {
+                    showNotification('success', 'Customer Added', `${formData.name} has been added successfully.`);
+                    await loadCustomers();
+                } else {
+                    showNotification('error', 'Error', 'Failed to create customer');
+                }
+            }
+            handleCloseModal();
+        } catch (error) {
+            console.error('Error saving customer:', error);
+            showNotification('error', 'Error', 'Failed to save customer');
+        }
+    };
+
     return (
-        <DataTable
-            columns={[
-                { key: "name", label: "Name", sortable: true, resizable: true },
-                { key: "position", label: "Position", sortable: true, resizable: true },
-                { key: "office", label: "Office", sortable: true, resizable: true },
-                { key: "age", label: "Age", sortable: true, resizable: true, numeric: true },
-                { key: "startDate", label: "Start Date", sortable: true, resizable: true },
-                { key: "salary", label: "Salary", sortable: true, resizable: true, numeric: true },
-            ]}
-            data={tableData}
-            actionButtons={[
-                {
-                    label: "Edit",
-                    icon: (
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+        <>
+            <DataTable
+                columns={[
+                    { key: "name", label: "Name", sortable: true, resizable: true },
+                    { key: "position", label: "Position", sortable: true, resizable: true },
+                    { key: "office", label: "Office", sortable: true, resizable: true },
+                    { key: "age", label: "Age", sortable: true, resizable: true, numeric: true },
+                    { key: "startDate", label: "Start Date", sortable: true, resizable: true },
+                    { key: "salary", label: "Salary", sortable: true, resizable: true, numeric: true },
+                ]}
+                data={tableData}
+                actionButtons={[
+                    {
+                        label: "Edit",
+                        icon: (
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                            </svg>
+                        ),
+                        onClick: handleEdit,
+                        variant: "default",
+                    },
+                    {
+                        label: "Delete",
+                        icon: (
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                            </svg>
+                        ),
+                        onClick: handleDelete,
+                        variant: "danger",
+                    },
+                ]}
+                onSelectionChange={handleSelectionChange}
+                enableSearch={true}
+                enablePagination={true}
+                enableShowEntries={true}
+                enableFilter={true}
+                enableAutoFilter={true}
+                enableDownload={true}
+                onAddNew={handleAddNew}
+            />
+
+            {/* Add/Edit Modal */}
+            {isModalOpen && (
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 bg-black/50 z-50"
+                        onClick={handleCloseModal}
+                    />
+
+                    {/* Modal */}
+                    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+                        <div
+                            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md pointer-events-auto"
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                        </svg>
-                    ),
-                    onClick: handleEdit,
-                    variant: "default",
-                },
-                {
-                    label: "Delete",
-                    icon: (
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                        </svg>
-                    ),
-                    onClick: handleDelete,
-                    variant: "danger",
-                },
-            ]}
-            onSelectionChange={handleSelectionChange}
-            enableSearch={true}
-            enablePagination={true}
-            enableShowEntries={true}
-            enableFilter={true}
-            enableAutoFilter={true}
-            enableDownload={true}
-        />
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+                                </h3>
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Form */}
+                            <div className="px-6 py-4 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Position
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.position}
+                                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Office
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.office}
+                                        onChange={(e) => setFormData({ ...formData, office: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Age
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={formData.age || ""}
+                                        onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 0 })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Start Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="YYYY/MM/DD"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Salary
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="$0"
+                                        value={formData.salary}
+                                        onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors"
+                                >
+                                    {editingCustomer ? 'Update' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+        </>
     );
 }

@@ -22,6 +22,7 @@ export const ColumnChooserModal: React.FC<ColumnChooserModalProps> = ({
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [isPositioned, setIsPositioned] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
 
     // Center the modal relative to the table container on mount
@@ -35,8 +36,9 @@ export const ColumnChooserModal: React.FC<ColumnChooserModalProps> = ({
                 x: (containerWidth - modalRect.width) / 2,
                 y: (containerHeight - modalRect.height) / 2
             });
+            setIsPositioned(true);
         }
-    }, []);
+    }, [containerRef]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest('.modal-header')) {
@@ -84,7 +86,7 @@ export const ColumnChooserModal: React.FC<ColumnChooserModalProps> = ({
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, dragOffset]);
+    }, [isDragging, dragOffset, containerRef]);
 
     return (
         <>
@@ -110,7 +112,8 @@ export const ColumnChooserModal: React.FC<ColumnChooserModalProps> = ({
                 }}
                 onMouseDown={handleMouseDown}
                 onClick={(e) => e.stopPropagation()}
-                className="absolute z-50 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl select-none"
+                className={`absolute z-50 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl select-none transition-opacity duration-150 ${isPositioned ? 'opacity-100' : 'opacity-0'
+                    }`}
             >
                 {/* Header */}
                 <div className="modal-header flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 rounded-t-lg cursor-grab active:cursor-grabbing">

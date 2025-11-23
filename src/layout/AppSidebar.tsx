@@ -11,12 +11,9 @@ import {
   GridIcon,
   GroupIcon,
   HorizontaLDots,
-  ListIcon,
   PageIcon,
   PieChartIcon,
-  PlugInIcon,
   TableIcon,
-  UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -40,25 +37,14 @@ const navItems: NavItem[] = [
     path: "/calendar",
   },
   {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
-  },
-  {
     icon: <GroupIcon />,
     name: "Customers",
     path: "/customers",
   },
   {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
-  {
     name: "Tables",
     icon: <TableIcon />,
     subItems: [
-      { name: "Basic Tables", path: "/basic-tables", pro: false },
       { name: "Data Table 3", path: "/tables/data-table-3", pro: false },
     ],
   },
@@ -87,18 +73,10 @@ const othersItems: NavItem[] = [
     subItems: [
       { name: "Alerts", path: "/alerts", pro: false },
       { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
+      { name: "Badge", path: "/badges", pro: false },
       { name: "Buttons", path: "/buttons", pro: false },
       { name: "Images", path: "/images", pro: false },
       { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
     ],
   },
 ];
