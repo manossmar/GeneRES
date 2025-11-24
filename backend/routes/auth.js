@@ -84,7 +84,7 @@ router.post('/signin', async (req, res) => {
         await connection.commit();
 
         console.log('Password validation successful for email:', email);
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '1h' });
         console.log('JWT token generated for email:', email);
         const { password: hashedPassword, ...userWithoutPassword } = user;
         res.json({ token, user: userWithoutPassword });

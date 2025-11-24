@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DataTable from "../../common/DataTable";
 import { useNotification } from "../../../context/NotificationContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useFetchWithAuth } from "../../../hooks/useFetchWithAuth";
 
 interface Provider {
     id: number;
@@ -26,7 +27,9 @@ export default function ProvidersTable() {
         salary: "",
     });
     const { showConfirmation, showNotification } = useNotification();
+
     const { token } = useAuth();
+    const fetchWithAuth = useFetchWithAuth();
 
     // Load providers from database (using customers API for now)
     useEffect(() => {
@@ -37,13 +40,9 @@ export default function ProvidersTable() {
 
     const loadProviders = async () => {
         try {
-            const response = await fetch('http://localhost:3002/api/customers', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            const response = await fetchWithAuth('http://localhost:3002/api/customers');
 
-            if (response.ok) {
+            if (response && response.ok) {
                 const data = await response.json();
                 // Map database fields to component fields
                 const formattedData = data.map((provider: any) => ({
@@ -84,14 +83,11 @@ export default function ProvidersTable() {
             `Are you sure you want to delete ${item.name}?`,
             async () => {
                 try {
-                    const response = await fetch(`http://localhost:3002/api/customers/${item.id}`, {
+                    const response = await fetchWithAuth(`http://localhost:3002/api/customers/${item.id}`, {
                         method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
                     });
 
-                    if (response.ok) {
+                    if (response && response.ok) {
                         showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
                         await loadProviders();
                     } else {
@@ -147,12 +143,8 @@ export default function ProvidersTable() {
         try {
             if (editingProvider) {
                 // Update existing provider
-                const response = await fetch(`http://localhost:3002/api/customers/${editingProvider.id}`, {
+                const response = await fetchWithAuth(`http://localhost:3002/api/customers/${editingProvider.id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
                     body: JSON.stringify({
                         name: formData.name,
                         position: formData.position,
@@ -163,7 +155,7 @@ export default function ProvidersTable() {
                     }),
                 });
 
-                if (response.ok) {
+                if (response && response.ok) {
                     showNotification('success', 'Updated', `${formData.name} has been updated successfully.`);
                     await loadProviders();
                 } else {
@@ -171,12 +163,8 @@ export default function ProvidersTable() {
                 }
             } else {
                 // Create new provider
-                const response = await fetch('http://localhost:3002/api/customers', {
+                const response = await fetchWithAuth('http://localhost:3002/api/customers', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
                     body: JSON.stringify({
                         name: formData.name,
                         position: formData.position,
@@ -187,7 +175,7 @@ export default function ProvidersTable() {
                     }),
                 });
 
-                if (response.ok) {
+                if (response && response.ok) {
                     showNotification('success', 'Provider Added', `${formData.name} has been added successfully.`);
                     await loadProviders();
                 } else {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DataTable from "../../common/DataTable";
 import { useNotification } from "../../../context/NotificationContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useFetchWithAuth } from "../../../hooks/useFetchWithAuth";
 
 interface Customer {
     id: number;
@@ -26,7 +27,9 @@ export default function CustomerTable() {
         salary: "",
     });
     const { showConfirmation, showNotification } = useNotification();
+
     const { token } = useAuth();
+    const fetchWithAuth = useFetchWithAuth();
 
     // Load customers from database
     useEffect(() => {
@@ -37,13 +40,9 @@ export default function CustomerTable() {
 
     const loadCustomers = async () => {
         try {
-            const response = await fetch('http://localhost:3002/api/customers', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            const response = await fetchWithAuth('http://localhost:3002/api/customers');
 
-            if (response.ok) {
+            if (response && response.ok) {
                 const data = await response.json();
                 // Map database fields to component fields
                 const formattedData = data.map((customer: any) => ({
@@ -84,14 +83,11 @@ export default function CustomerTable() {
             `Are you sure you want to delete ${item.name}?`,
             async () => {
                 try {
-                    const response = await fetch(`http://localhost:3002/api/customers/${item.id}`, {
+                    const response = await fetchWithAuth(`http://localhost:3002/api/customers/${item.id}`, {
                         method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
                     });
 
-                    if (response.ok) {
+                    if (response && response.ok) {
                         showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
                         await loadCustomers();
                     } else {
@@ -147,12 +143,8 @@ export default function CustomerTable() {
         try {
             if (editingCustomer) {
                 // Update existing customer
-                const response = await fetch(`http://localhost:3002/api/customers/${editingCustomer.id}`, {
+                const response = await fetchWithAuth(`http://localhost:3002/api/customers/${editingCustomer.id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
                     body: JSON.stringify({
                         name: formData.name,
                         position: formData.position,
@@ -163,7 +155,7 @@ export default function CustomerTable() {
                     }),
                 });
 
-                if (response.ok) {
+                if (response && response.ok) {
                     showNotification('success', 'Updated', `${formData.name} has been updated successfully.`);
                     await loadCustomers();
                 } else {
@@ -171,12 +163,8 @@ export default function CustomerTable() {
                 }
             } else {
                 // Create new customer
-                const response = await fetch('http://localhost:3002/api/customers', {
+                const response = await fetchWithAuth('http://localhost:3002/api/customers', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
                     body: JSON.stringify({
                         name: formData.name,
                         position: formData.position,
@@ -187,7 +175,7 @@ export default function CustomerTable() {
                     }),
                 });
 
-                if (response.ok) {
+                if (response && response.ok) {
                     showNotification('success', 'Customer Added', `${formData.name} has been added successfully.`);
                     await loadCustomers();
                 } else {
