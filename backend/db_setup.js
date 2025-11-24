@@ -51,6 +51,22 @@ async function setupDatabase() {
     `);
     console.log('Table customers created or already exists.');
 
+    // Create providers table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS providers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        category VARCHAR(255),
+        status VARCHAR(50),
+        description TEXT,
+        notes TEXT,
+        creation_date DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Table providers created or already exists.');
+
     // Check if customers table is empty and insert mock data
     const [rows] = await db.execute('SELECT COUNT(*) as count FROM customers');
     if (rows[0].count === 0) {

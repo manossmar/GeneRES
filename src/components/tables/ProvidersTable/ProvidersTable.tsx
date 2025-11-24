@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import DataTable from "../../common/DataTable";
+import Badge from "../../ui/badge/Badge";
 import { useNotification } from "../../../context/NotificationContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useFetchWithAuth } from "../../../hooks/useFetchWithAuth";
@@ -7,11 +8,11 @@ import { useFetchWithAuth } from "../../../hooks/useFetchWithAuth";
 interface Provider {
     id: number;
     name: string;
-    position: string;
-    office: string;
-    age: number;
-    startDate: string;
-    salary: string;
+    category: string;
+    status: string;
+    description: string;
+    notes: string;
+    creation_date: string;
 }
 
 export default function ProvidersTable() {
@@ -20,18 +21,18 @@ export default function ProvidersTable() {
     const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
     const [formData, setFormData] = useState<Omit<Provider, 'id'>>({
         name: "",
-        position: "",
-        office: "",
-        age: 0,
-        startDate: "",
-        salary: "",
+        category: "",
+        status: "",
+        description: "",
+        notes: "",
+        creation_date: "",
     });
     const { showConfirmation, showNotification } = useNotification();
 
     const { token } = useAuth();
     const fetchWithAuth = useFetchWithAuth();
 
-    // Load providers from database (using customers API for now)
+    // Load providers from database
     useEffect(() => {
         if (token) {
             loadProviders();
@@ -40,21 +41,11 @@ export default function ProvidersTable() {
 
     const loadProviders = async () => {
         try {
-            const response = await fetchWithAuth('http://localhost:3002/api/customers');
+            const response = await fetchWithAuth('http://localhost:3002/api/providers');
 
             if (response && response.ok) {
                 const data = await response.json();
-                // Map database fields to component fields
-                const formattedData = data.map((provider: any) => ({
-                    id: provider.id,
-                    name: provider.name,
-                    position: provider.position || "",
-                    office: provider.office || "",
-                    age: provider.age || 0,
-                    startDate: provider.start_date || "",
-                    salary: provider.salary || "",
-                }));
-                setTableData(formattedData);
+                setTableData(data);
             } else {
                 showNotification('error', 'Error', 'Failed to load providers');
             }
@@ -68,11 +59,11 @@ export default function ProvidersTable() {
         setEditingProvider(item);
         setFormData({
             name: item.name,
-            position: item.position,
-            office: item.office,
-            age: item.age,
-            startDate: item.startDate,
-            salary: item.salary,
+            category: item.category || "",
+            status: item.status || "",
+            description: item.description || "",
+            notes: item.notes || "",
+            creation_date: item.creation_date ? item.creation_date.split('T')[0] : "",
         });
         setIsModalOpen(true);
     };
@@ -83,7 +74,7 @@ export default function ProvidersTable() {
             `Are you sure you want to delete ${item.name}?`,
             async () => {
                 try {
-                    const response = await fetchWithAuth(`http://localhost:3002/api/customers/${item.id}`, {
+                    const response = await fetchWithAuth(`http://localhost:3002/api/providers/${item.id}`, {
                         method: 'DELETE',
                     });
 
@@ -112,11 +103,11 @@ export default function ProvidersTable() {
         setEditingProvider(null);
         setFormData({
             name: "",
-            position: "",
-            office: "",
-            age: 0,
-            startDate: "",
-            salary: "",
+            category: "",
+            status: "",
+            description: "",
+            notes: "",
+            creation_date: new Date().toISOString().split('T')[0],
         });
         setIsModalOpen(true);
     };
@@ -126,11 +117,11 @@ export default function ProvidersTable() {
         setEditingProvider(null);
         setFormData({
             name: "",
-            position: "",
-            office: "",
-            age: 0,
-            startDate: "",
-            salary: "",
+            category: "",
+            status: "",
+            description: "",
+            notes: "",
+            creation_date: "",
         });
     };
 
@@ -143,16 +134,9 @@ export default function ProvidersTable() {
         try {
             if (editingProvider) {
                 // Update existing provider
-                const response = await fetchWithAuth(`http://localhost:3002/api/customers/${editingProvider.id}`, {
+                const response = await fetchWithAuth(`http://localhost:3002/api/providers/${editingProvider.id}`, {
                     method: 'PUT',
-                    body: JSON.stringify({
-                        name: formData.name,
-                        position: formData.position,
-                        office: formData.office,
-                        age: formData.age,
-                        start_date: formData.startDate,
-                        salary: formData.salary,
-                    }),
+                    body: JSON.stringify(formData),
                 });
 
                 if (response && response.ok) {
@@ -163,16 +147,9 @@ export default function ProvidersTable() {
                 }
             } else {
                 // Create new provider
-                const response = await fetchWithAuth('http://localhost:3002/api/customers', {
+                const response = await fetchWithAuth('http://localhost:3002/api/providers', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        name: formData.name,
-                        position: formData.position,
-                        office: formData.office,
-                        age: formData.age,
-                        start_date: formData.startDate,
-                        salary: formData.salary,
-                    }),
+                    body: JSON.stringify(formData),
                 });
 
                 if (response && response.ok) {
@@ -193,12 +170,39 @@ export default function ProvidersTable() {
         <>
             <DataTable
                 columns={[
+                    { key: "id", label: "ID", sortable: true, resizable: true, minWidth: 50 },
                     { key: "name", label: "Name", sortable: true, resizable: true },
-                    { key: "position", label: "Position", sortable: true, resizable: true },
-                    { key: "office", label: "Office", sortable: true, resizable: true },
-                    { key: "age", label: "Age", sortable: true, resizable: true, numeric: true },
-                    { key: "startDate", label: "Start Date", sortable: true, resizable: true },
-                    { key: "salary", label: "Salary", sortable: true, resizable: true, numeric: true },
+                    { key: "category", label: "Category", sortable: true, resizable: true },
+                    {
+                        key: "status",
+                        label: "Status",
+                        sortable: true,
+                        resizable: true,
+                        render: (provider: Provider) => {
+                            let color: "success" | "error" | "warning" | "light" = "light";
+                            if (provider.status === "Active") color = "success";
+                            else if (provider.status === "Inactive") color = "error";
+                            else if (provider.status === "Pending") color = "warning";
+
+                            return (
+                                <Badge variant="light" color={color}>
+                                    {provider.status}
+                                </Badge>
+                            );
+                        }
+                    },
+                    { key: "description", label: "Description", sortable: true, resizable: true },
+                    { key: "notes", label: "Notes", sortable: true, resizable: true },
+                    {
+                        key: "creation_date",
+                        label: "Creation Date",
+                        sortable: true,
+                        resizable: true,
+                        render: (provider: Provider) => {
+                            if (!provider.creation_date) return "";
+                            return new Date(provider.creation_date).toLocaleDateString();
+                        }
+                    },
                 ]}
                 data={tableData}
                 actionButtons={[
@@ -286,7 +290,7 @@ export default function ProvidersTable() {
                             </div>
 
                             {/* Form */}
-                            <div className="px-6 py-4 space-y-4">
+                            <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         Name
@@ -300,58 +304,60 @@ export default function ProvidersTable() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Position
+                                        Category
                                     </label>
                                     <input
                                         type="text"
-                                        value={formData.position}
-                                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Office
+                                        Status
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={formData.office}
-                                        onChange={(e) => setFormData({ ...formData, office: e.target.value })}
+                                    <select
+                                        value={formData.status}
+                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                    >
+                                        <option value="">Select Status</option>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                        rows={3}
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Age
+                                        Notes
                                     </label>
-                                    <input
-                                        type="number"
-                                        value={formData.age || ""}
-                                        onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 0 })}
+                                    <textarea
+                                        value={formData.notes}
+                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
+                                        rows={2}
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Start Date
+                                        Creation Date
                                     </label>
                                     <input
-                                        type="text"
-                                        placeholder="YYYY/MM/DD"
-                                        value={formData.startDate}
-                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Salary
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="$0"
-                                        value={formData.salary}
-                                        onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                                        type="date"
+                                        value={formData.creation_date}
+                                        onChange={(e) => setFormData({ ...formData, creation_date: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:text-white"
                                     />
                                 </div>
