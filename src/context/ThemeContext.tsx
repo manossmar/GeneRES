@@ -19,11 +19,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // This code will only run on the client side
+    // Sync state with what was applied by the script
     const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "light"; // Default to light theme
-
-    setTheme(initialTheme);
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
     setIsInitialized(true);
   }, []);
 

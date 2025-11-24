@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const multer = require('multer');
+const sharp = require('sharp');
 
 // Set up multer for memory storage (to save as BLOB)
 const storage = multer.memoryStorage();
@@ -85,10 +86,29 @@ router.put('/:userId', upload.single('picture'), async (req, res) => {
     }
   });
 
+  const sharp = require('sharp');
+
+  // ... (existing imports)
+
+  // ... inside PUT route ...
+
   // Handle picture
   if (req.file) {
-    setClauses.push('picture = ?');
-    values.push(req.file.buffer);
+    try {
+      const resizedImageBuffer = await sharp(req.file.buffer)
+        .resize(100, 100, {
+          fit: 'cover',
+          position: 'center',
+        })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      setClauses.push('picture = ?');
+      values.push(resizedImageBuffer);
+    } catch (error) {
+      console.error('Error processing image:', error);
+      return res.status(500).json({ message: 'Error processing image' });
+    }
   } else if (updates.deletePicture === 'true') {
     setClauses.push('picture = NULL');
   }
