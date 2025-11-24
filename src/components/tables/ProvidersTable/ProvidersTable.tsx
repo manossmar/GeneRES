@@ -246,11 +246,13 @@ export default function ProvidersTable() {
                 onSelectionChange={handleSelectionChange}
                 enableSearch={true}
                 enablePagination={true}
-                enableShowEntries={true}
-                enableFilter={true}
-                enableAutoFilter={true}
-                enableDownload={true}
+                enableShowEntries={false}
+                enableFilter={false}
+                enableAutoFilter={false}
+                enableDownload={false}
                 onAddNew={handleAddNew}
+                enableColumnMenu={false}
+                enableSelection={false}
             />
 
             {/* Add/Edit Modal */}

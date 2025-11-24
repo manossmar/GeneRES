@@ -48,6 +48,8 @@ interface DataTableProps<T> {
     enableShowEntries?: boolean;
     enableAutoFilter?: boolean;
     onSelectionChange?: (selectedItems: T[]) => void;
+    enableColumnMenu?: boolean;
+    enableSelection?: boolean;
 }
 
 export default function DataTable<T extends { id: number | string }>({
@@ -66,6 +68,8 @@ export default function DataTable<T extends { id: number | string }>({
     enableShowEntries = true,
     enableAutoFilter = false,
     onSelectionChange,
+    enableColumnMenu = true,
+    enableSelection = true,
 }: DataTableProps<T>) {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -707,17 +711,19 @@ export default function DataTable<T extends { id: number | string }>({
                 <Table className="table-fixed">
                     <TableHeader className="border border-gray-200 dark:border-white/[0.05] bg-gray-50 dark:bg-white/[0.02]">
                         <TableRow className="border-b border-gray-200 dark:border-white/[0.05]">
-                            <TableCell isHeader className="px-3 py-2.5 text-center w-px whitespace-nowrap border-r border-gray-200 dark:border-white/[0.05]">
-                                <input
-                                    type="checkbox"
-                                    className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
-                                    onChange={handleSelectAll}
-                                    checked={
-                                        currentData.length > 0 &&
-                                        currentData.every((item) => selectedIds.has(item.id))
-                                    }
-                                />
-                            </TableCell>
+                            {enableSelection && (
+                                <TableCell isHeader className="px-3 py-2.5 text-center w-px whitespace-nowrap border-r border-gray-200 dark:border-white/[0.05]">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
+                                        onChange={handleSelectAll}
+                                        checked={
+                                            currentData.length > 0 &&
+                                            currentData.every((item) => selectedIds.has(item.id))
+                                        }
+                                    />
+                                </TableCell>
+                            )}
                             {columnOrder
                                 .filter(key => visibleColumns.has(key))
                                 .map((key) => {
@@ -739,8 +745,10 @@ export default function DataTable<T extends { id: number | string }>({
                                             onDrop={(e) => dragHandlers.handleDrop(e, String(column.key), handleColumnReorder, handleHideColumn)}
                                             onDragEnd={dragHandlers.handleDragEnd}
                                             onContextMenu={(e) => {
-                                                e.preventDefault();
-                                                handleColumnMenuClick(e, String(column.key));
+                                                if (enableColumnMenu) {
+                                                    e.preventDefault();
+                                                    handleColumnMenuClick(e, String(column.key));
+                                                }
                                             }}
                                             className={`relative px-3 py-2.5 font-bold text-gray-700 text-start text-sm dark:text-gray-200 border-r border-gray-200 dark:border-white/[0.05] ${column.sortable
                                                 ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.05]"
@@ -798,16 +806,18 @@ export default function DataTable<T extends { id: number | string }>({
                                                             </svg>
                                                         </div>
                                                     )}
-                                                    <button
-                                                        className="column-dropdown py-1 pl-1 pr-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                                                        onClick={(e) => handleColumnMenuClick(e, String(column.key))}
-                                                    >
-                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                                                            <circle cx="8" cy="3" r="1.5" />
-                                                            <circle cx="8" cy="8" r="1.5" />
-                                                            <circle cx="8" cy="13" r="1.5" />
-                                                        </svg>
-                                                    </button>
+                                                    {enableColumnMenu && (
+                                                        <button
+                                                            className="column-dropdown py-1 pl-1 pr-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                                                            onClick={(e) => handleColumnMenuClick(e, String(column.key))}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                                                                <circle cx="8" cy="3" r="1.5" />
+                                                                <circle cx="8" cy="8" r="1.5" />
+                                                                <circle cx="8" cy="13" r="1.5" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1019,14 +1029,16 @@ export default function DataTable<T extends { id: number | string }>({
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                         {currentData.map((item) => (
                             <TableRow key={item.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] ${selectedIds.has(item.id) ? "bg-gray-100 dark:bg-white/[0.05]" : ""}`}>
-                                <TableCell className="px-3 py-4 text-center border-r border-gray-100 dark:border-white/[0.05]">
-                                    <input
-                                        type="checkbox"
-                                        className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
-                                        checked={selectedIds.has(item.id)}
-                                        onChange={() => handleSelectRow(item.id)}
-                                    />
-                                </TableCell>
+                                {enableSelection && (
+                                    <TableCell className="px-3 py-4 text-center border-r border-gray-100 dark:border-white/[0.05]">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
+                                            checked={selectedIds.has(item.id)}
+                                            onChange={() => handleSelectRow(item.id)}
+                                        />
+                                    </TableCell>
+                                )}
                                 {columnOrder
                                     .filter(key => visibleColumns.has(key))
                                     .map((key) => {
