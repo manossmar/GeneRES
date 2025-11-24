@@ -5,14 +5,13 @@ import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 
 // Assume these icons are imported from an icon library
 import {
-  BoxCubeIcon,
+  BoxIcon,
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   GroupIcon,
   HorizontaLDots,
   PageIcon,
-  PieChartIcon,
   TableIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
@@ -37,6 +36,11 @@ const navItems: NavItem[] = [
     path: "/calendar",
   },
   {
+    icon: <BoxIcon />,
+    name: "Hotels",
+    path: "/hotels",
+  },
+  {
     icon: <GroupIcon />,
     name: "Customers",
     path: "/customers",
@@ -59,6 +63,11 @@ const navItems: NavItem[] = [
 ];
 
 const othersItems: NavItem[] = [
+  {
+    icon: <GridIcon />, // Reusing GridIcon for now, or import a Settings icon if available
+    name: "General Settings",
+    path: "/settings",
+  },
   {
     icon: <GroupIcon />,
     name: "Providers",

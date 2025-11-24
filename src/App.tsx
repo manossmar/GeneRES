@@ -18,7 +18,9 @@ import DataTable3 from "./pages/Tables/DataTable3";
 import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import Customers from "./pages/Customers";
+import Hotels from "./pages/Hotels";
 import Providers from "./pages/Providers";
+import GeneralSettings from "./pages/GeneralSettings";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
@@ -46,7 +48,9 @@ export default function App() {
               {/* Others Page */}
               <Route path="/profile" element={<UserProfiles />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/hotels" element={<Hotels />} />
               <Route path="/customers" element={<Customers />} />
+              <Route path="/settings" element={<GeneralSettings />} />
               <Route path="/providers" element={<Providers />} />
               <Route path="/blank" element={<Blank />} />
 

@@ -50,6 +50,7 @@ interface DataTableProps<T> {
     onSelectionChange?: (selectedItems: T[]) => void;
     enableColumnMenu?: boolean;
     enableSelection?: boolean;
+    initialVisibleColumns?: string[];
 }
 
 export default function DataTable<T extends { id: number | string }>({
@@ -70,6 +71,7 @@ export default function DataTable<T extends { id: number | string }>({
     onSelectionChange,
     enableColumnMenu = true,
     enableSelection = true,
+    initialVisibleColumns,
 }: DataTableProps<T>) {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -219,13 +221,15 @@ export default function DataTable<T extends { id: number | string }>({
     // Initialize column order and visibility
     useEffect(() => {
         const initialOrder = columns.map(col => String(col.key));
-        const initialVisible = new Set(columns.map(col => String(col.key)));
+        const initialVisible = initialVisibleColumns && initialVisibleColumns.length > 0
+            ? new Set(initialVisibleColumns)
+            : new Set(columns.map(col => String(col.key)));
 
         setColumnOrder(initialOrder);
         setVisibleColumns(initialVisible);
         setDefaultColumnOrder(initialOrder);
         setDefaultVisibleColumns(initialVisible);
-    }, [columns]);
+    }, [columns, initialVisibleColumns]);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
