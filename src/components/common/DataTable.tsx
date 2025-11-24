@@ -188,7 +188,7 @@ export default function DataTable<T extends { id: number | string }>({
 
             const { key, startX, startWidth } = resizingRef.current;
             const diff = e.clientX - startX;
-            const newWidth = Math.max(50, startWidth + diff); // Minimum width 50px
+            const newWidth = Math.max(10, startWidth + diff); // Minimum width 10px
 
             setColumnWidths((prev) => ({
                 ...prev,
@@ -707,7 +707,7 @@ export default function DataTable<T extends { id: number | string }>({
                 <Table className="table-fixed">
                     <TableHeader className="border border-gray-200 dark:border-white/[0.05] bg-gray-50 dark:bg-white/[0.02]">
                         <TableRow className="border-b border-gray-200 dark:border-white/[0.05]">
-                            <TableCell isHeader className="px-5 py-2.5 text-start w-10 border-r border-gray-200 dark:border-white/[0.05]">
+                            <TableCell isHeader className="px-3 py-2.5 text-center w-px whitespace-nowrap border-r border-gray-200 dark:border-white/[0.05]">
                                 <input
                                     type="checkbox"
                                     className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
@@ -747,7 +747,7 @@ export default function DataTable<T extends { id: number | string }>({
                                                 : ""
                                                 } ${isDragging ? "opacity-50" : ""} ${isDropTarget ? "bg-brand-100 dark:bg-brand-900/30 border-l-4 border-l-brand-500" : ""
                                                 } cursor-move transition-all duration-200`}
-                                            style={{ width, minWidth: column.minWidth || 100 }}
+                                            style={{ width, minWidth: column.minWidth || 20 }}
                                         >
                                             <div
                                                 className="flex items-center justify-between gap-2 h-full"
@@ -936,7 +936,7 @@ export default function DataTable<T extends { id: number | string }>({
                             {(actionButtons || onEdit || onDelete) && (
                                 <TableCell
                                     isHeader
-                                    className="px-5 py-2.5 font-bold text-gray-700 text-start text-sm dark:text-gray-200 w-px whitespace-nowrap"
+                                    className="px-3 py-2.5 font-bold text-gray-700 text-center text-sm dark:text-gray-200 w-px whitespace-nowrap"
                                 >
                                     Actions
                                 </TableCell>
@@ -1019,7 +1019,7 @@ export default function DataTable<T extends { id: number | string }>({
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                         {currentData.map((item) => (
                             <TableRow key={item.id} className={`hover:bg-gray-50 dark:hover:bg-white/[0.02] ${selectedIds.has(item.id) ? "bg-gray-100 dark:bg-white/[0.05]" : ""}`}>
-                                <TableCell className="px-3 py-4 text-start border-r border-gray-100 dark:border-white/[0.05]">
+                                <TableCell className="px-3 py-4 text-center border-r border-gray-100 dark:border-white/[0.05]">
                                     <input
                                         type="checkbox"
                                         className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 w-4 h-4"
@@ -1047,8 +1047,8 @@ export default function DataTable<T extends { id: number | string }>({
                                         );
                                     })}
                                 {(actionButtons || onEdit || onDelete) && (
-                                    <TableCell className="px-3 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 w-px whitespace-nowrap">
-                                        <div className="flex items-center gap-3">
+                                    <TableCell className="px-3 py-4 text-gray-500 text-center text-theme-sm dark:text-gray-400 w-px whitespace-nowrap">
+                                        <div className="flex items-center justify-center gap-3">
                                             {actionButtons ? (
                                                 // Custom action buttons
                                                 actionButtons.map((action, index) => (
@@ -1130,8 +1130,7 @@ export default function DataTable<T extends { id: number | string }>({
                                         </Badge>
                                     </div>
                                 </TableCell>
-                                {columnOrder
-                                    .filter(key => visibleColumns.has(key))
+                                {columnOrder.filter(key => visibleColumns.has(key))
                                     .map((key) => {
                                         const column = columns.find(col => String(col.key) === key);
                                         if (!column) return null;
