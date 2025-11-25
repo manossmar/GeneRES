@@ -132,7 +132,7 @@ export const ColumnChooserModal: React.FC<ColumnChooserModalProps> = ({
 
                 {/* Content */}
                 <div className="max-h-64 overflow-y-auto p-2">
-                    {columns.map(col => (
+                    {[...columns].sort((a, b) => a.label.localeCompare(b.label)).map(col => (
                         <label
                             key={col.key}
                             className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"

@@ -5,7 +5,7 @@ import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 
 // Assume these icons are imported from an icon library
 import {
-  BoxIcon,
+  BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     path: "/calendar",
   },
   {
-    icon: <BoxIcon />,
+    icon: <BoxCubeIcon />,
     name: "Hotels",
     path: "/hotels",
   },

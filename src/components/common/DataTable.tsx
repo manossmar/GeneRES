@@ -85,19 +85,19 @@ export default function DataTable<T extends { id: number | string }>({
     );
 
     // Column Resizing State
-    const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>(
-        {}
-    );
+    const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>({});
+    const [originalColumnWidths, setOriginalColumnWidths] = useState<{ [key: string]: number }>({});
     const resizingRef = useRef<{
         key: string;
         startX: number;
         startWidth: number;
     } | null>(null);
 
+    // Minimal width threshold for showing only dots (very small - only when text is completely unreadable)
+    const MINIMAL_COLUMN_WIDTH = 15;
+
     // AutoFilter State
-    const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>(
-        {}
-    );
+    const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
 
     // Filter Selected State
     const [showSelectedOnly, setShowSelectedOnly] = useState(false);
@@ -225,6 +225,13 @@ export default function DataTable<T extends { id: number | string }>({
             ? new Set(initialVisibleColumns)
             : new Set(columns.map(col => String(col.key)));
 
+        // Store original widths for double-click restore
+        const origWidths: { [key: string]: number } = {};
+        columns.forEach(col => {
+            origWidths[String(col.key)] = 150; // Default width
+        });
+        setOriginalColumnWidths(origWidths);
+
         setColumnOrder(initialOrder);
         setVisibleColumns(initialVisible);
         setDefaultColumnOrder(initialOrder);
@@ -258,6 +265,14 @@ export default function DataTable<T extends { id: number | string }>({
             startWidth: currentWidth,
         };
         document.body.style.cursor = "col-resize";
+    };
+
+    const handleRestoreColumnWidth = (key: string) => {
+        const originalWidth = originalColumnWidths[key] || 150;
+        setColumnWidths(prev => ({
+            ...prev,
+            [key]: originalWidth,
+        }));
     };
 
     const handleSort = (key: keyof T) => {
@@ -770,59 +785,72 @@ export default function DataTable<T extends { id: number | string }>({
                                                     }
                                                 }}
                                             >
-                                                <span className="truncate">{column.label}</span>
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                    {column.sortable && (
-                                                        <div className="flex flex-col gap-0.5">
-                                                            <svg
-                                                                className={`w-2.5 h-2.5 ${sortConfig?.key === column.key &&
-                                                                    sortConfig.direction === "asc"
-                                                                    ? "text-brand-500 scale-125 font-bold"
-                                                                    : "text-gray-300 dark:text-gray-600"
-                                                                    }`}
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={3}
-                                                                    d="M5 15l7-7 7 7"
-                                                                />
-                                                            </svg>
-                                                            <svg
-                                                                className={`w-2.5 h-2.5 ${sortConfig?.key === column.key &&
-                                                                    sortConfig.direction === "desc"
-                                                                    ? "text-brand-500 scale-125 font-bold"
-                                                                    : "text-gray-300 dark:text-gray-600"
-                                                                    }`}
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={3}
-                                                                    d="M19 9l-7 7-7-7"
-                                                                />
-                                                            </svg>
+                                                {(typeof width === 'number' ? width : parseInt(String(width))) < MINIMAL_COLUMN_WIDTH ? (
+                                                    // Show only 3 horizontal dots when column is extremely narrow
+                                                    <div className="flex items-center justify-center w-full">
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                                                            <circle cx="3" cy="8" r="1.5" />
+                                                            <circle cx="8" cy="8" r="1.5" />
+                                                            <circle cx="13" cy="8" r="1.5" />
+                                                        </svg>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span className="truncate">{column.label}</span>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            {column.sortable && (
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <svg
+                                                                        className={`w-2.5 h-2.5 ${sortConfig?.key === column.key &&
+                                                                            sortConfig.direction === "asc"
+                                                                            ? "text-brand-500 scale-125 font-bold"
+                                                                            : "text-gray-300 dark:text-gray-600"
+                                                                            }`}
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={3}
+                                                                            d="M5 15l7-7 7 7"
+                                                                        />
+                                                                    </svg>
+                                                                    <svg
+                                                                        className={`w-2.5 h-2.5 ${sortConfig?.key === column.key &&
+                                                                            sortConfig.direction === "desc"
+                                                                            ? "text-brand-500 scale-125 font-bold"
+                                                                            : "text-gray-300 dark:text-gray-600"
+                                                                            }`}
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={3}
+                                                                            d="M19 9l-7 7-7-7"
+                                                                        />
+                                                                    </svg>
+                                                                </div>
+                                                            )}
+                                                            {enableColumnMenu && (
+                                                                <button
+                                                                    className="column-dropdown py-1 pl-1 pr-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                                                                    onClick={(e) => handleColumnMenuClick(e, String(column.key))}
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                                                                        <circle cx="8" cy="3" r="1.5" />
+                                                                        <circle cx="8" cy="8" r="1.5" />
+                                                                        <circle cx="8" cy="13" r="1.5" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    {enableColumnMenu && (
-                                                        <button
-                                                            className="column-dropdown py-1 pl-1 pr-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                                                            onClick={(e) => handleColumnMenuClick(e, String(column.key))}
-                                                        >
-                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                                                                <circle cx="8" cy="3" r="1.5" />
-                                                                <circle cx="8" cy="8" r="1.5" />
-                                                                <circle cx="8" cy="13" r="1.5" />
-                                                            </svg>
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                    </>
+                                                )}
                                             </div>
 
                                             {/* Drag-to-Hide X Overlay */}
@@ -942,6 +970,11 @@ export default function DataTable<T extends { id: number | string }>({
                                                             e.currentTarget.parentElement?.offsetWidth || 100
                                                         )
                                                     }
+                                                    onDoubleClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleRestoreColumnWidth(String(column.key));
+                                                    }}
                                                 />
                                             )}
                                         </TableCell>
@@ -1049,16 +1082,30 @@ export default function DataTable<T extends { id: number | string }>({
                                         const column = columns.find(col => String(col.key) === key);
                                         if (!column) return null;
 
+                                        const width = columnWidths[String(column.key)] || "auto";
+                                        const isMinimal = (typeof width === 'number' ? width : parseInt(String(width))) < MINIMAL_COLUMN_WIDTH;
+
                                         return (
                                             <TableCell
                                                 key={String(column.key)}
                                                 className="px-3 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 border-r border-gray-100 dark:border-white/[0.05]"
+                                                style={{ width, minWidth: column.minWidth || 20 }}
                                             >
-                                                <div className="truncate">
-                                                    {column.render
-                                                        ? column.render(item)
-                                                        : (item[column.key] as React.ReactNode)}
-                                                </div>
+                                                {isMinimal ? (
+                                                    <div className="flex items-center justify-center">
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                                                            <circle cx="3" cy="8" r="1.5" />
+                                                            <circle cx="8" cy="8" r="1.5" />
+                                                            <circle cx="13" cy="8" r="1.5" />
+                                                        </svg>
+                                                    </div>
+                                                ) : (
+                                                    <div className="truncate">
+                                                        {column.render
+                                                            ? column.render(item)
+                                                            : (item[column.key] as React.ReactNode)}
+                                                    </div>
+                                                )}
                                             </TableCell>
                                         );
                                     })}
