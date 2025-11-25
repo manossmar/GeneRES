@@ -151,4 +151,28 @@ router.post('/update', async (req, res) => {
   }
 });
 
+// Search users (for notification recipients)
+router.get('/search', async (req, res) => {
+  const { query } = req.query;
+
+  if (!query || query.length < 2) {
+    return res.json([]);
+  }
+
+  try {
+    const searchQuery = `
+      SELECT id, first_name, last_name, email
+      FROM users
+      WHERE (first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)
+      LIMIT 20
+    `;
+    const searchTerm = `%${query}%`;
+    const [rows] = await db.query(searchQuery, [searchTerm, searchTerm, searchTerm]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

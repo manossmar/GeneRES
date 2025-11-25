@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DataTable from "../../common/DataTable";
+import Spinner from "../../ui/Spinner";
 import { useNotification } from "../../../context/NotificationContext";
 import { useFetchWithAuth } from "../../../hooks/useFetchWithAuth";
 
@@ -52,6 +53,7 @@ export default function HotelsTable() {
     const [isLoading, setIsLoading] = useState(true);
     const { showNotification } = useNotification();
     const fetchWithAuth = useFetchWithAuth();
+    const hasLoadedRef = useRef(false);
 
     // Load hotels from API
     const loadHotels = async () => {
@@ -86,6 +88,10 @@ export default function HotelsTable() {
     };
 
     useEffect(() => {
+        // Prevent double loading in React Strict Mode
+        if (hasLoadedRef.current) return;
+        hasLoadedRef.current = true;
+
         loadHotels();
     }, []);
 
@@ -119,7 +125,7 @@ export default function HotelsTable() {
     };
 
     if (isLoading) {
-        return <div className="text-center py-8">Loading hotels...</div>;
+        return <Spinner size="xl" />;
     }
 
     return (

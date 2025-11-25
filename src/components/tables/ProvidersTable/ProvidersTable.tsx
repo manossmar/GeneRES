@@ -257,6 +257,7 @@ export default function ProvidersTable() {
                 onAddNew={handleAddNew}
                 enableColumnMenu={false}
                 enableSelection={false}
+                initialSort={{ key: "id", direction: "asc" }}
             />
 
             {/* Add/Edit Modal */}

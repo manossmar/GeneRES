@@ -51,6 +51,10 @@ interface DataTableProps<T> {
     enableColumnMenu?: boolean;
     enableSelection?: boolean;
     initialVisibleColumns?: string[];
+    initialSort?: {
+        key: keyof T;
+        direction: "asc" | "desc";
+    };
 }
 
 export default function DataTable<T extends { id: number | string }>({
@@ -72,6 +76,7 @@ export default function DataTable<T extends { id: number | string }>({
     enableColumnMenu = true,
     enableSelection = true,
     initialVisibleColumns,
+    initialSort,
 }: DataTableProps<T>) {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +84,7 @@ export default function DataTable<T extends { id: number | string }>({
     const [sortConfig, setSortConfig] = useState<{
         key: keyof T;
         direction: "asc" | "desc";
-    } | null>(null);
+    } | null>(initialSort || null);
     const [selectedIds, setSelectedIds] = useState<Set<number | string>>(
         new Set()
     );
@@ -774,7 +779,7 @@ export default function DataTable<T extends { id: number | string }>({
                                                 : ""
                                                 } ${isDragging ? "opacity-50" : ""} ${isDropTarget ? "bg-brand-100 dark:bg-brand-900/30 border-l-4 border-l-brand-500" : ""
                                                 } cursor-move transition-all duration-200`}
-                                            style={{ width, minWidth: column.minWidth || 20 }}
+                                            style={{ width, maxWidth: width, minWidth: column.minWidth || 20 }}
                                         >
                                             <div
                                                 className="flex items-center justify-between gap-2 h-full"
@@ -1089,7 +1094,7 @@ export default function DataTable<T extends { id: number | string }>({
                                             <TableCell
                                                 key={String(column.key)}
                                                 className="px-3 py-4 text-gray-500 text-start text-theme-sm dark:text-gray-400 border-r border-gray-100 dark:border-white/[0.05]"
-                                                style={{ width, minWidth: column.minWidth || 20 }}
+                                                style={{ width, maxWidth: width, minWidth: column.minWidth || 20 }}
                                             >
                                                 {isMinimal ? (
                                                     <div className="flex items-center justify-center">

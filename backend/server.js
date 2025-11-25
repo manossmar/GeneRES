@@ -39,6 +39,7 @@ app.use('/api/calendar', authMiddleware, calendarRoutes);
 app.use('/api/customers', authMiddleware, customersRoutes);
 app.use('/api/providers', authMiddleware, require('./routes/providers'));
 app.use('/api/hotels', authMiddleware, require('./routes/hotels'));
+app.use('/api/notifications', authMiddleware, require('./routes/notifications'));
 
 const port = process.env.PORT || 3002;
 
