@@ -41,6 +41,7 @@ interface DataTableProps<T> {
     showEdit?: boolean;
     showDelete?: boolean;
     onAddNew?: () => void;
+    addNewButtonLabel?: string;
     enableSearch?: boolean;
     enablePagination?: boolean;
     enableDownload?: boolean;
@@ -66,6 +67,7 @@ export default function DataTable<T extends { id: number | string }>({
     showEdit = true,
     showDelete = true,
     onAddNew,
+    addNewButtonLabel,
     enableSearch = true,
     enablePagination = true,
     enableDownload = false,
@@ -622,25 +624,37 @@ export default function DataTable<T extends { id: number | string }>({
                         </div>
                     )}
                     {onAddNew && (
-                        <button
-                            title="Add New"
-                            onClick={onAddNew}
-                            className="p-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
-                        >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                        addNewButtonLabel ? (
+                            <button
+                                onClick={onAddNew}
+                                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 4v16m8-8H4"
-                                />
-                            </svg>
-                        </button>
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                {addNewButtonLabel}
+                            </button>
+                        ) : (
+                            <button
+                                title="Add New"
+                                onClick={onAddNew}
+                                className="p-2 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+                            >
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 4v16m8-8H4"
+                                    />
+                                </svg>
+                            </button>
+                        )
                     )}
                     {enableFilter && (
                         <button

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useFetchWithAuth } from '../hooks/useFetchWithAuth';
+import { useAuth } from './AuthContext';
 
 interface Notification {
     id: number;
@@ -49,8 +50,14 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const fetchWithAuth = useFetchWithAuth();
+    const { isAuthenticated } = useAuth();
 
     const loadNotifications = async (filters?: { unread_only?: boolean; type?: string }) => {
+        // Only load if authenticated
+        if (!isAuthenticated) {
+            return;
+        }
+
         setIsLoading(true);
         try {
             const params = new URLSearchParams();
@@ -62,8 +69,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
                 const data = await response.json();
                 setNotifications(data);
                 setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
+            } else if (response?.status === 401) {
+                // Authentication error - silently fail, don't trigger logout
+                console.log('Not authenticated, skipping notification load');
             }
         } catch (error) {
+            // Silently handle errors to prevent logout loops
             console.error('Error loading notifications:', error);
         } finally {
             setIsLoading(false);
@@ -180,12 +191,26 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // Load notifications on mount and refresh every 30 seconds
+    // Load notifications when authenticated and refresh every 30 seconds
     useEffect(() => {
+        if (!isAuthenticated) {
+            // Clear notifications when logged out
+            setNotifications([]);
+            setUnreadCount(0);
+            return;
+        }
+
+        // Load immediately when authenticated
         loadNotifications();
-        const interval = setInterval(() => loadNotifications(), 30000);
+
+        // Set up interval for auto-refresh
+        const interval = setInterval(() => {
+            loadNotifications();
+        }, 30000);
+
         return () => clearInterval(interval);
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated]);
 
     return (
         <NotificationsContext.Provider

@@ -32,7 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
         query += ' ORDER BY n.created_at DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
 
-        const notifications = await db.query(query, params);
+        const [notifications] = await db.query(query, params);
 
         // Parse metadata JSON
         notifications.forEach(n => {
@@ -55,7 +55,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Get unread count
 router.get('/unread-count', authenticateToken, async (req, res) => {
     try {
-        const result = await db.query(
+        const [result] = await db.query(
             'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE',
             [req.userData.userId]
         );
@@ -142,7 +142,7 @@ router.post('/send', authenticateToken, async (req, res) => {
         }
 
         // Verify recipient exists
-        const recipient = await db.query('SELECT id FROM users WHERE id = ?', [recipient_id]);
+        const [recipient] = await db.query('SELECT id FROM users WHERE id = ?', [recipient_id]);
         if (recipient.length === 0) {
             return res.status(404).json({ error: 'Recipient not found' });
         }

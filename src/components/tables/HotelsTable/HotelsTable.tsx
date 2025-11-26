@@ -48,7 +48,12 @@ interface Hotel {
     googleRating?: string;
 }
 
-export default function HotelsTable() {
+interface HotelsTableProps {
+    onAddNew?: () => void;
+    onEdit?: (hotel: Hotel) => void;
+}
+
+export default function HotelsTable({ onAddNew, onEdit }: HotelsTableProps) {
     const [tableData, setTableData] = useState<Hotel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { showNotification } = useNotification();
@@ -96,8 +101,12 @@ export default function HotelsTable() {
     }, []);
 
     const handleEdit = (item: Hotel) => {
-        console.log("Edit item:", item);
-        alert(`Edit ${item.name}`);
+        if (onEdit) {
+            onEdit(item);
+        } else {
+            console.log("Edit item:", item);
+            alert(`Edit ${item.name}`);
+        }
     };
 
     const handleDelete = async (item: Hotel) => {
@@ -121,7 +130,11 @@ export default function HotelsTable() {
     };
 
     const handleAddNew = () => {
-        alert('Add new hotel functionality coming soon');
+        if (onAddNew) {
+            onAddNew();
+        } else {
+            alert('Add new hotel');
+        }
     };
 
     if (isLoading) {
@@ -130,6 +143,7 @@ export default function HotelsTable() {
 
     return (
         <DataTable
+            addNewButtonLabel="Add New Hotel"
             columns={[
                 // Visible columns
                 { key: "id", label: "ID", sortable: true, resizable: true, numeric: true },

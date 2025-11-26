@@ -14,7 +14,7 @@ class NotificationService {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
-        const result = await db.query(query, [
+        const [result] = await db.query(query, [
             userId,
             senderId,
             type,
