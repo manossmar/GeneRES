@@ -76,16 +76,19 @@ interface HotelFormProps {
 
 export default function HotelForm({ initialData: propInitialData, onClose, onSubmit }: HotelFormProps) {
     // Notification hook
-    const { showConfirmation } = useNotification();
+    const { showConfirmation, showNotification } = useNotification();
 
     // State
     const [activeTab, setActiveTab] = useState('identity');
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [formData, setFormData] = useState<HotelFormData>(initialData);
+    const [initialFormData, setInitialFormData] = useState<HotelFormData>(initialData);
+    const [changeCount, setChangeCount] = useState(0);
 
     useEffect(() => {
         if (propInitialData) {
             setFormData(propInitialData);
+            setInitialFormData(propInitialData);
             // Collapse all rooms by default when editing
             if (propInitialData.rooms && propInitialData.rooms.length > 0) {
                 const collapsed: Record<number, boolean> = {};
@@ -96,12 +99,28 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
             }
         } else {
             setFormData(initialData);
+            setInitialFormData(initialData);
         }
+        setChangeCount(0);
     }, [propInitialData]);
+
     const [tabOverrides, setTabOverrides] = useState<Record<string, boolean>>({});
     const [locationSearch, setLocationSearch] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [collapsedRooms, setCollapsedRooms] = useState<Record<number, boolean>>({});
+
+    // Track changes
+    useEffect(() => {
+        const currentStr = JSON.stringify(formData);
+        const initialStr = JSON.stringify(initialFormData);
+        if (currentStr !== initialStr) {
+            // Count number of changed fields (simple approach)
+            const changes = currentStr.length - initialStr.length;
+            setChangeCount(Math.abs(changes) > 0 ? Math.max(1, Math.floor(Math.abs(changes) / 10)) : 0);
+        } else {
+            setChangeCount(0);
+        }
+    }, [formData, initialFormData]);
 
     // Generic change handler
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -430,11 +449,65 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
         { id: 'media', label: 'Media', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
     ];
 
+    // Email validation
+    const isValidEmail = (email: string): boolean => {
+        if (!email || email.trim() === '') return true; // Empty is ok
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+
+    // Form validation
+    const validateForm = (): boolean => {
+        // Required: Hotel name
+        if (!formData.name || formData.name.trim() === '') {
+            showNotification('error', 'Validation Error', 'Hotel name is required');
+            return false;
+        }
+
+        // Validate main email
+        if (formData.email && !isValidEmail(formData.email)) {
+            showNotification('error', 'Validation Error', 'Main email address is invalid');
+            return false;
+        }
+
+        // Validate contact emails
+        for (let i = 0; i < formData.communicationDetails.length; i++) {
+            const contact = formData.communicationDetails[i];
+            if (contact.email && !isValidEmail(contact.email)) {
+                showNotification('error', 'Validation Error', `Contact email for "${contact.department || 'Department ' + (i + 1)}" is invalid`);
+                return false;
+            }
+        }
+
+        return true;
+    };
+
     const handleSubmit = () => {
+        // Validate form
+        if (!validateForm()) {
+            return;
+        }
+
         if (onSubmit) {
             onSubmit(formData);
+            // Reset change counter after successful save
+            setInitialFormData(formData);
+            setChangeCount(0);
         }
         // onClose(); // Let parent handle closing if needed
+    };
+
+    const handleClose = () => {
+        if (changeCount > 0) {
+            showConfirmation(
+                'Unsaved Changes',
+                'You have unsaved changes. Are you sure you want to leave?',
+                () => {
+                    onClose();
+                }
+            );
+        } else {
+            onClose();
+        }
     };
 
     return (
@@ -444,7 +517,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                 <h2 className="text-base font-medium text-gray-800 dark:text-white/90">Add or edit Hotels</h2>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="rounded-full p-1.5 bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,6 +552,11 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                                                 {formData.media.length} photo{formData.media.length === 1 ? '' : 's'}
                                             </span>
                                         )}
+                                        {tab.id === 'rooms' && formData.rooms.length > 0 && (
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
+                                                {formData.rooms.length} room{formData.rooms.length === 1 ? '' : 's'}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <CompletionIndicator percentage={calculateTabCompletion(tab.id)} tabId={tab.id} isOverridden={!!tabOverrides[tab.id]} />
@@ -488,7 +566,12 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                         {/* Save Button as a Tab */}
                         <button
                             onClick={handleSubmit}
-                            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 border-l-4 border-transparent"
+                            disabled={changeCount === 0}
+                            className={`flex w-full flex-col items-start gap-1 rounded-lg px-4 py-3 text-sm font-medium transition-colors border-l-4 border-transparent ${changeCount === 0
+                                ? 'bg-blue-400 text-white cursor-not-allowed opacity-60'
+                                : 'bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 cursor-pointer'
+                                }`}
+                            style={changeCount === 0 ? { cursor: 'not-allowed' } : {}}
                         >
                             <div className="flex items-center gap-3">
                                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -496,6 +579,11 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                                 </svg>
                                 <span>Save Hotel</span>
                             </div>
+                            {changeCount > 0 && (
+                                <span className="text-[10px] text-white/80 font-normal ml-8">
+                                    {changeCount} change{changeCount === 1 ? '' : 's'}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>
