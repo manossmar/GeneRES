@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { HotelFormData, RoomDetail, MediaFile, CommunicationDetail } from '../../types/hotel';
+import { HotelFormData, RoomDetail, MediaFile, CommunicationDetail, SUPPORTED_LANGUAGES } from '../../types/hotel';
 import { initialData, ROOM_VIEWS, BED_TYPES, ROOM_LOCATIONS } from './hotelFormUtils';
+import LanguageSelector from './LanguageSelector';
+import { useNotification } from '../../context/NotificationContext';
 
 // Helper UI components
 const InputGroup = ({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) => (
@@ -12,14 +14,14 @@ const InputGroup = ({ label, children, className = '' }: { label: string; childr
 
 const Input = ({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
     <input
-        className={`w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500 ${className}`}
+        className={`w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:focus:border-gray-800 dark:focus:ring-brand-500/20 ${className}`}
         {...props}
     />
 );
 
 const TextArea = ({ className = '', ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
     <textarea
-        className={`w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500 min-h-[100px] ${className}`}
+        className={`w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:focus:border-gray-800 dark:focus:ring-brand-500/20 min-h-[100px] ${className}`}
         {...props}
     />
 );
@@ -27,7 +29,7 @@ const TextArea = ({ className = '', ...props }: React.TextareaHTMLAttributes<HTM
 const Select = ({ className = '', ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
     <div className="relative">
         <select
-            className={`w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500 ${className}`}
+            className={`w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:focus:border-gray-800 dark:focus:ring-brand-500/20 ${className}`}
             {...props}
         />
         <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
@@ -73,13 +75,25 @@ interface HotelFormProps {
 }
 
 export default function HotelForm({ initialData: propInitialData, onClose, onSubmit }: HotelFormProps) {
+    // Notification hook
+    const { showConfirmation } = useNotification();
+
     // State
     const [activeTab, setActiveTab] = useState('identity');
+    const [currentLanguage, setCurrentLanguage] = useState('en');
     const [formData, setFormData] = useState<HotelFormData>(initialData);
 
     useEffect(() => {
         if (propInitialData) {
             setFormData(propInitialData);
+            // Collapse all rooms by default when editing
+            if (propInitialData.rooms && propInitialData.rooms.length > 0) {
+                const collapsed: Record<number, boolean> = {};
+                propInitialData.rooms.forEach((_, index) => {
+                    collapsed[index] = true;
+                });
+                setCollapsedRooms(collapsed);
+            }
         } else {
             setFormData(initialData);
         }
@@ -93,6 +107,20 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Translation change handler
+    const handleTranslationChange = (langCode: string, field: keyof typeof formData.translations.en, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            translations: {
+                ...prev.translations,
+                [langCode]: {
+                    ...prev.translations[langCode],
+                    [field]: value
+                }
+            }
+        }));
     };
 
     // Auto-fill location search when entering Main Details
@@ -204,17 +232,21 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
         setFormData(prev => ({
             ...prev,
             rooms: [...prev.rooms, {
-                name: '',
-                type: 'Standard',
                 view: ROOM_VIEWS[0],
                 bedType: BED_TYPES[0],
                 quantity: '1',
                 location: ROOM_LOCATIONS[0],
                 size: '',
                 smokingAllowed: false,
-                mainDescription: '',
                 facilities: '',
                 media: [],
+                translations: {
+                    en: { name: '', mainDescription: '' },
+                    fr: { name: '', mainDescription: '' },
+                    de: { name: '', mainDescription: '' },
+                    ru: { name: '', mainDescription: '' },
+                    it: { name: '', mainDescription: '' },
+                },
             }],
         }));
     };
@@ -226,10 +258,16 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
     };
 
     const removeRoom = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            rooms: prev.rooms.filter((_, i) => i !== index),
-        }));
+        showConfirmation(
+            'Delete Room',
+            'Are you sure you want to delete this room? This action cannot be undone.',
+            () => {
+                setFormData(prev => ({
+                    ...prev,
+                    rooms: prev.rooms.filter((_, i) => i !== index),
+                }));
+            }
+        );
     };
 
     // Tab navigation order
@@ -285,29 +323,28 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
 
             case 'details':
                 const detailFields = [
-                    formData.description, formData.detailedDescription,
-                    formData.additionalInformation, formData.numBuildings,
+                    formData.translations.en.description,
+                    formData.translations.en.detailedDescription,
+                    formData.translations.en.additionalInformation,
+                    formData.numBuildings,
                     formData.numRooms, formData.checkInTime, formData.checkOutTime,
-                    formData.yearOpened, formData.yearRenovated, formData.yearRoomRenovated
+                    formData.yearOpened, formData.yearRenovated
                 ];
                 totalFields = detailFields.length;
                 completedFields = detailFields.filter(isFieldComplete).length;
                 break;
 
             case 'rooms':
-                if (formData.rooms.length === 0) return 0;
-                let totalRoomFields = 0;
-                let completedRoomFields = 0;
-                formData.rooms.forEach(room => {
-                    const roomFields = [
-                        room.name, room.view, room.bedType, room.location,
-                        room.quantity, room.size, room.mainDescription, room.facilities
-                    ];
-                    totalRoomFields += roomFields.length + 1; // +1 for media
-                    completedRoomFields += roomFields.filter(f => isFieldComplete(f)).length;
-                    if (room.media && room.media.length > 0) completedRoomFields++;
-                });
-                return totalRoomFields > 0 ? Math.round((completedRoomFields / totalRoomFields) * 100) : 0;
+                totalFields = formData.rooms.length * 5; // name, type, view, bedType, quantity
+                completedFields = formData.rooms.reduce((count, room) => {
+                    return count +
+                        (room.translations?.en?.name ? 1 : 0) +
+                        (room.view ? 1 : 0) +
+                        (room.bedType ? 1 : 0) +
+                        (room.quantity ? 1 : 0) +
+                        (room.location ? 1 : 0);
+                }, 0);
+                break;
 
             case 'amenities':
                 const amenitiesFields = [
@@ -397,7 +434,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
         if (onSubmit) {
             onSubmit(formData);
         }
-        onClose();
+        // onClose(); // Let parent handle closing if needed
     };
 
     return (
@@ -407,16 +444,10 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                 <h2 className="text-base font-medium text-gray-800 dark:text-white/90">Add or edit Hotels</h2>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={handleSubmit}
-                        className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-                    >
-                        Save Hotel
-                    </button>
-                    <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        className="rounded-full p-1.5 bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
                     >
-                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -453,6 +484,19 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                                 <CompletionIndicator percentage={calculateTabCompletion(tab.id)} tabId={tab.id} isOverridden={!!tabOverrides[tab.id]} />
                             </button>
                         ))}
+
+                        {/* Save Button as a Tab */}
+                        <button
+                            onClick={handleSubmit}
+                            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 border-l-4 border-transparent"
+                        >
+                            <div className="flex items-center gap-3">
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
+                                <span>Save Hotel</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
 
@@ -519,7 +563,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                             </div>
                             {/* Navigation Buttons */}
                             <div className="flex items-center justify-between border-t border-gray-100 pt-6 mt-8 dark:border-gray-800">
-                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
+                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
                                 <button onClick={goToNextTab} className="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600">Next <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg></button>
                             </div>
                         </div>
@@ -538,10 +582,30 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                                                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">#{idx + 1}</span>
                                                     <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Room Name</label>
                                                 </div>
-                                                <input type="text" value={room.name} onChange={e => updateRoom(idx, 'name', e.target.value)} onClick={e => e.stopPropagation()} placeholder="e.g. Deluxe Sea View" className={`w-full text-base font-bold text-gray-900 dark:text-white px-3 py-2 transition-all placeholder:text-gray-400 placeholder:font-normal ${collapsedRooms[idx] ? 'bg-transparent border-0 focus:outline-none' : 'bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 focus:outline-none'}`} />
+                                                <input
+                                                    type="text"
+                                                    value={room.translations?.[currentLanguage]?.name || ''}
+                                                    onChange={e => {
+                                                        const newRooms = [...formData.rooms];
+                                                        newRooms[idx] = {
+                                                            ...newRooms[idx],
+                                                            translations: {
+                                                                ...newRooms[idx].translations,
+                                                                [currentLanguage]: {
+                                                                    ...newRooms[idx].translations[currentLanguage],
+                                                                    name: e.target.value
+                                                                }
+                                                            }
+                                                        };
+                                                        setFormData(prev => ({ ...prev, rooms: newRooms }));
+                                                    }}
+                                                    onClick={e => e.stopPropagation()}
+                                                    placeholder="e.g. Deluxe Sea View"
+                                                    className={`w-full text-base font-bold text-gray-900 dark:text-white px-3 py-2 transition-all placeholder:text-gray-400 placeholder:font-normal ${collapsedRooms[idx] ? 'bg-transparent border-0 focus:outline-none' : 'bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 focus:border-brand-500 dark:focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 focus:outline-none'}`}
+                                                />
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <button type="button" onClick={(e) => { e.stopPropagation(); removeRoom(idx); }} className="text-gray-400 hover:text-red-500 transition-colors"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); removeRoom(idx); }} className="rounded-full p-1.5 bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-500 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                                                 <svg className={`h-5 w-5 text-gray-500 transition-transform ${collapsedRooms[idx] ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                         </div>
@@ -556,7 +620,27 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                                                     <InputGroup label="Size (sqm)"><Input placeholder="e.g. 32-39" value={room.size} onChange={e => updateRoom(idx, 'size', e.target.value)} /></InputGroup>
                                                 </div>
                                                 <div className="mt-4 grid grid-cols-1 gap-6">
-                                                    <InputGroup label="Description"><TextArea placeholder="Room description..." value={room.mainDescription} onChange={e => updateRoom(idx, 'mainDescription', e.target.value)} className="min-h-[80px]" /></InputGroup>
+                                                    <InputGroup label="Description">
+                                                        <TextArea
+                                                            placeholder="Room description..."
+                                                            value={room.translations?.[currentLanguage]?.mainDescription || ''}
+                                                            onChange={e => {
+                                                                const newRooms = [...formData.rooms];
+                                                                newRooms[idx] = {
+                                                                    ...newRooms[idx],
+                                                                    translations: {
+                                                                        ...newRooms[idx].translations,
+                                                                        [currentLanguage]: {
+                                                                            ...newRooms[idx].translations[currentLanguage],
+                                                                            mainDescription: e.target.value
+                                                                        }
+                                                                    }
+                                                                };
+                                                                setFormData(prev => ({ ...prev, rooms: newRooms }));
+                                                            }}
+                                                            className="min-h-[80px]"
+                                                        />
+                                                    </InputGroup>
                                                     <InputGroup label="Facilities (Tags)"><Input placeholder="WiFi, AC, Kitchen..." value={room.facilities} onChange={e => updateRoom(idx, 'facilities', e.target.value)} /></InputGroup>
                                                 </div>
                                                 <div className="mt-4 flex items-center gap-3">
@@ -604,7 +688,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                             </div>
                             {/* Navigation Buttons */}
                             <div className="flex items-center justify-between border-t border-gray-100 pt-6 mt-8 dark:border-gray-800">
-                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
+                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
                                 <button onClick={goToNextTab} className="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600">Next <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg></button>
                             </div>
                         </div>
@@ -622,7 +706,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                                 <div className="space-y-4">
                                     {formData.communicationDetails.map((detail, idx) => (
                                         <div key={idx} className="relative rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                                            <button onClick={() => removeCommunication(idx)} className="absolute right-2 top-2 text-gray-400 hover:text-red-500"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                                            <button onClick={() => removeCommunication(idx)} className="absolute right-2 top-2 rounded-full p-1.5 bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-500 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                 <Input placeholder="Department (e.g. Reservations)" value={detail.department} onChange={e => updateCommunication(idx, 'department', e.target.value)} />
                                                 <Input placeholder="Contact Person" value={detail.contactPerson} onChange={e => updateCommunication(idx, 'contactPerson', e.target.value)} />
@@ -636,7 +720,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                             </div>
                             {/* Navigation Buttons */}
                             <div className="flex items-center justify-between border-t border-gray-100 pt-6 mt-8 dark:border-gray-800">
-                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
+                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
                                 <button onClick={goToNextTab} className="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600">Next <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg></button>
                             </div>
                         </div>
@@ -645,9 +729,35 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                     {/* Details */}
                     {activeTab === 'details' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <InputGroup label="Main Description"><TextArea name="description" value={formData.description} onChange={handleChange} placeholder="Brief overview of the hotel..." /></InputGroup>
-                            <InputGroup label="Detailed Description"><TextArea name="detailedDescription" value={formData.detailedDescription} onChange={handleChange} placeholder="Full description of amenities and experience..." className="min-h-[150px]" /></InputGroup>
-                            <InputGroup label="Additional Information"><TextArea name="additionalInformation" value={formData.additionalInformation} onChange={handleChange} placeholder="Policies, important notes, etc..." /></InputGroup>
+                            {/* Language Selector */}
+                            <LanguageSelector
+                                selectedLanguage={currentLanguage}
+                                onLanguageChange={setCurrentLanguage}
+                                languages={SUPPORTED_LANGUAGES}
+                            />
+
+                            <InputGroup label="Main Description">
+                                <TextArea
+                                    value={formData.translations[currentLanguage]?.description || ''}
+                                    onChange={(e) => handleTranslationChange(currentLanguage, 'description', e.target.value)}
+                                    placeholder="Brief overview of the hotel..."
+                                />
+                            </InputGroup>
+                            <InputGroup label="Detailed Description">
+                                <TextArea
+                                    value={formData.translations[currentLanguage]?.detailedDescription || ''}
+                                    onChange={(e) => handleTranslationChange(currentLanguage, 'detailedDescription', e.target.value)}
+                                    placeholder="Full description of amenities and experience..."
+                                    className="min-h-[150px]"
+                                />
+                            </InputGroup>
+                            <InputGroup label="Additional Information">
+                                <TextArea
+                                    value={formData.translations[currentLanguage]?.additionalInformation || ''}
+                                    onChange={(e) => handleTranslationChange(currentLanguage, 'additionalInformation', e.target.value)}
+                                    placeholder="Policies, important notes, etc..."
+                                />
+                            </InputGroup>
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                                 <InputGroup label="Number of Buildings"><Input name="numBuildings" type="number" value={formData.numBuildings} onChange={handleChange} /></InputGroup>
                                 <InputGroup label="Number of Rooms"><Input name="numRooms" type="number" value={formData.numRooms} onChange={handleChange} /></InputGroup>
@@ -661,7 +771,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                             </div>
                             {/* Navigation Buttons */}
                             <div className="flex items-center justify-between border-t border-gray-100 pt-6 mt-8 dark:border-gray-800">
-                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
+                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
                                 <button onClick={goToNextTab} className="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600">Next <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg></button>
                             </div>
                         </div>
@@ -678,7 +788,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                             </div>
                             {/* Navigation Buttons */}
                             <div className="flex items-center justify-between border-t border-gray-100 pt-6 mt-8 dark:border-gray-800">
-                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
+                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
                                 <button onClick={goToNextTab} className="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600">Next <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg></button>
                             </div>
                         </div>
@@ -724,7 +834,7 @@ export default function HotelForm({ initialData: propInitialData, onClose, onSub
                             {formData.media.length === 0 && (<div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200 dark:bg-gray-800/50 dark:border-gray-700"><p>No images uploaded yet. Upload images above to get started.</p></div>)}
                             {/* Navigation Buttons */}
                             <div className="flex items-center justify-between border-t border-gray-100 pt-6 mt-8 dark:border-gray-800">
-                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
+                                <button onClick={goToPreviousTab} className="flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg> Previous</button>
                                 <button onClick={goToNextTab} disabled={currentTabIndex === tabOrder.length - 1} className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-colors ${currentTabIndex === tabOrder.length - 1 ? 'cursor-not-allowed text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-600' : 'bg-brand-500 text-white hover:bg-brand-600'}`}>
                                     Next
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>

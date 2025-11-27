@@ -56,7 +56,7 @@ interface HotelsTableProps {
 export default function HotelsTable({ onAddNew, onEdit }: HotelsTableProps) {
     const [tableData, setTableData] = useState<Hotel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const { showNotification } = useNotification();
+    const { showNotification, showConfirmation } = useNotification();
     const fetchWithAuth = useFetchWithAuth();
     const hasLoadedRef = useRef(false);
 
@@ -110,19 +110,25 @@ export default function HotelsTable({ onAddNew, onEdit }: HotelsTableProps) {
     };
 
     const handleDelete = async (item: Hotel) => {
-        try {
-            const response = await fetchWithAuth(`/api/hotels/${item.id}`, {
-                method: 'DELETE',
-            });
+        showConfirmation(
+            'Delete Hotel',
+            `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+            async () => {
+                try {
+                    const response = await fetchWithAuth(`/api/hotels/${item.id}`, {
+                        method: 'DELETE',
+                    });
 
-            if (!response || !response.ok) throw new Error('Failed to delete hotel');
+                    if (!response || !response.ok) throw new Error('Failed to delete hotel');
 
-            setTableData((prev) => prev.filter((h) => h.id !== item.id));
-            showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
-        } catch (error) {
-            console.error('Error deleting hotel:', error);
-            showNotification('error', 'Error', 'Failed to delete hotel');
-        }
+                    setTableData((prev) => prev.filter((h) => h.id !== item.id));
+                    showNotification('success', 'Deleted', `${item.name} has been deleted successfully.`);
+                } catch (error) {
+                    console.error('Error deleting hotel:', error);
+                    showNotification('error', 'Error', 'Failed to delete hotel');
+                }
+            }
+        );
     };
 
     const handleSelectionChange = (selectedItems: Hotel[]) => {

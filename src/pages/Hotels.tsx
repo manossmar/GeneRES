@@ -5,8 +5,11 @@ import ComponentCard from "../components/common/ComponentCard";
 import HotelsTable from "../components/tables/HotelsTable/HotelsTable";
 import HotelForm from "../components/hotels/HotelForm";
 import { HotelFormData } from "../types/hotel";
+import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
 
 export default function Hotels() {
+    const { token } = useAuth();
     const [view, setView] = useState<'table' | 'form'>('table');
     const [selectedHotel, setSelectedHotel] = useState<HotelFormData | null>(null);
 
@@ -15,59 +18,81 @@ export default function Hotels() {
         setView('form');
     };
 
-    const handleEdit = (hotel: any) => {
-        // Unpack hotelinfo JSON and map DB fields to form fields
-        let hotelInfo: any = {};
+    const handleEdit = async (hotel: any) => {
         try {
-            hotelInfo = hotel.hotelinfo ? JSON.parse(hotel.hotelinfo) : {};
+            // Fetch full hotel details including rooms and translations
+            const response = await fetch(`http://localhost:3002/api/hotels/${hotel.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch hotel details');
+            }
+
+            const fullHotel = await response.json();
+            console.log('Fetched full hotel details:', fullHotel);
+            console.log('Rooms from backend:', fullHotel.rooms);
+
+            // Map DB fields to form fields
+            const formData: HotelFormData = {
+                id: fullHotel.id, // Preserve ID for updates
+                // Direct DB mappings
+                name: fullHotel.name || '',
+                code: fullHotel.code || '',
+                typeDescription: fullHotel.typeDescription || '',
+                locationDescription: fullHotel.locationDescription || '',
+                officialRating: fullHotel.officialRating || '',
+                ratingCommercial: fullHotel.ratingCommercial || '',
+                googleRating: fullHotel.googleRating || '',
+                architectureStyle: fullHotel.architectureStyle || '',
+                yearOpened: fullHotel.yearOpened || '',
+                yearRenovated: fullHotel.yearRenovated || '',
+                yearRoomRenovated: fullHotel.yearRoomRenovated || '',
+                airportCode: fullHotel.airportCode || '',
+                url: fullHotel.url || '',
+                address1: fullHotel.address1 || '',
+                cityName: fullHotel.cityName || '',
+                prefectureName: fullHotel.prefectureName || '',
+                country: fullHotel.country || '',
+                zip: fullHotel.zip || '',
+                latitude: fullHotel.latitude ? String(fullHotel.latitude) : '',
+                longitude: fullHotel.longitude ? String(fullHotel.longitude) : '',
+                telephone: fullHotel.telephone || '',
+                email: fullHotel.email || '',
+                numBuildings: fullHotel.numBuildings || '',
+                numRooms: fullHotel.numRooms || '',
+                checkInTime: fullHotel.checkInTime || '',
+                checkOutTime: fullHotel.checkOutTime || '',
+                searchTags: fullHotel.searchTags || '',
+                facilities: fullHotel.facilities || '',
+                referencePoints: fullHotel.referencePoints || '',
+                nearbyPoints: fullHotel.nearbyPoints || '',
+
+                // Translations
+                translations: {
+                    en: { description: '', detailedDescription: '', additionalInformation: '', ...(fullHotel.translations?.en || {}) },
+                    fr: { description: '', detailedDescription: '', additionalInformation: '', ...(fullHotel.translations?.fr || {}) },
+                    de: { description: '', detailedDescription: '', additionalInformation: '', ...(fullHotel.translations?.de || {}) },
+                    ru: { description: '', detailedDescription: '', additionalInformation: '', ...(fullHotel.translations?.ru || {}) },
+                    it: { description: '', detailedDescription: '', additionalInformation: '', ...(fullHotel.translations?.it || {}) },
+                },
+
+                // Rooms with translations
+                rooms: fullHotel.rooms || [],
+
+                // Communication details and media
+                communicationDetails: fullHotel.communicationDetails || [],
+                media: fullHotel.media || [],
+            };
+
+            setSelectedHotel(formData);
+            setView('form');
         } catch (error) {
-            console.error('Error parsing hotelinfo:', error);
+            console.error('Error fetching hotel details:', error);
+            showNotification('error', 'Error', 'Failed to load hotel details');
         }
-
-        const formData: HotelFormData = {
-            // Direct DB mappings
-            name: hotel.name || '',
-            code: hotel.code || '',
-            address1: hotel.address1 || '',
-            cityName: hotel.cityName || '',
-            prefectureName: hotel.prefectureName || '',
-            country: hotel.country || '',
-            zip: hotel.zip || '',
-            latitude: hotel.latitude ? String(hotel.latitude) : '',
-            longitude: hotel.longitude ? String(hotel.longitude) : '',
-            telephone: hotel.telephone || '',
-            email: hotel.email || '',
-
-            // Fields from hotelinfo JSON
-            typeDescription: hotelInfo.typeDescription || '',
-            locationDescription: hotelInfo.locationDescription || '',
-            officialRating: hotelInfo.officialRating || '',
-            ratingCommercial: hotelInfo.ratingCommercial || '',
-            googleRating: hotelInfo.googleRating || '',
-            architectureStyle: hotelInfo.architectureStyle || '',
-            yearOpened: hotelInfo.yearOpened || '',
-            yearRenovated: hotelInfo.yearRenovated || '',
-            yearRoomRenovated: hotelInfo.yearRoomRenovated || '',
-            airportCode: hotelInfo.airportCode || '',
-            url: hotelInfo.url || '',
-            description: hotelInfo.description || '',
-            detailedDescription: hotelInfo.detailedDescription || '',
-            additionalInformation: hotelInfo.additionalInformation || '',
-            numBuildings: hotelInfo.numBuildings || '',
-            numRooms: hotelInfo.numRooms || '',
-            checkInTime: hotelInfo.checkInTime || '',
-            checkOutTime: hotelInfo.checkOutTime || '',
-            searchTags: hotelInfo.searchTags || '',
-            facilities: hotelInfo.facilities || '',
-            referencePoints: hotelInfo.referencePoints || '',
-            nearbyPoints: hotelInfo.nearbyPoints || '',
-            communicationDetails: hotelInfo.communicationDetails || [],
-            rooms: hotelInfo.rooms || [],
-            media: hotelInfo.media || [],
-        };
-
-        setSelectedHotel(formData);
-        setView('form');
     };
 
     const handleCloseForm = () => {
@@ -75,25 +100,14 @@ export default function Hotels() {
         setSelectedHotel(null);
     };
 
+    const { showNotification } = useNotification();
+
     const handleSubmit = async (data: HotelFormData) => {
         try {
-            // Separate fields that go directly to DB columns vs hotelinfo JSON
-            const directFields = {
+            // Prepare payload with all fields and translations
+            const payload = {
                 name: data.name,
                 code: data.code,
-                address1: data.address1,
-                cityName: data.cityName,
-                prefectureName: data.prefectureName,
-                country: data.country,
-                zip: data.zip,
-                latitude: data.latitude,
-                longitude: data.longitude,
-                telephone: data.telephone,
-                email: data.email,
-            };
-
-            // Pack remaining fields into hotelinfo JSON
-            const hotelInfo = {
                 typeDescription: data.typeDescription,
                 locationDescription: data.locationDescription,
                 officialRating: data.officialRating,
@@ -105,9 +119,15 @@ export default function Hotels() {
                 yearRoomRenovated: data.yearRoomRenovated,
                 airportCode: data.airportCode,
                 url: data.url,
-                description: data.description,
-                detailedDescription: data.detailedDescription,
-                additionalInformation: data.additionalInformation,
+                address1: data.address1,
+                cityName: data.cityName,
+                prefectureName: data.prefectureName,
+                country: data.country,
+                zip: data.zip,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                telephone: data.telephone,
+                email: data.email,
                 numBuildings: data.numBuildings,
                 numRooms: data.numRooms,
                 checkInTime: data.checkInTime,
@@ -116,27 +136,24 @@ export default function Hotels() {
                 facilities: data.facilities,
                 referencePoints: data.referencePoints,
                 nearbyPoints: data.nearbyPoints,
-                communicationDetails: data.communicationDetails,
+                translations: data.translations,
                 rooms: data.rooms,
+                communicationDetails: data.communicationDetails,
                 media: data.media,
             };
 
-            const payload = {
-                ...directFields,
-                hotelinfo: JSON.stringify(hotelInfo),
-            };
-
             // Determine if this is a create or update operation
-            const isUpdate = selectedHotel !== null;
+            const isUpdate = selectedHotel !== null && (selectedHotel as any).id;
             const url = isUpdate
-                ? `http://localhost:5000/api/hotels/${(selectedHotel as any).id}`
-                : 'http://localhost:5000/api/hotels';
+                ? `http://localhost:3002/api/hotels/${(selectedHotel as any).id}`
+                : 'http://localhost:3002/api/hotels';
             const method = isUpdate ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -148,12 +165,25 @@ export default function Hotels() {
             const result = await response.json();
             console.log('Hotel saved successfully:', result);
 
-            // Close form and refresh table
-            handleCloseForm();
-            // TODO: Trigger table refresh
+            showNotification(
+                'success',
+                'Success',
+                `Hotel ${isUpdate ? 'updated' : 'created'} successfully`
+            );
+
+            // Only update form state if it was a create operation (to bind the new ID)
+            // For updates, we leave the form as is to prevent flashing/resetting
+            if (!isUpdate) {
+                handleEdit(result);
+            }
+
         } catch (error) {
             console.error('Error saving hotel:', error);
-            alert(`Error saving hotel: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            showNotification(
+                'error',
+                'Error',
+                `Failed to save hotel: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
         }
     };
 

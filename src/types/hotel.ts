@@ -10,68 +10,83 @@ export interface MediaFile {
     isDefault: boolean;
 }
 
-export interface RoomDetail {
+export interface RoomTranslation {
     name: string;
-    type: string;
+    mainDescription: string;
+}
+
+export interface RoomDetail {
     view: string;
     bedType: string;
     quantity: string;
     location: string;
     size: string;
     smokingAllowed: boolean;
-    mainDescription: string;
     facilities: string;
     media: MediaFile[];
+    translations: {
+        [languageCode: string]: RoomTranslation;
+    };
+}
+
+export interface HotelTranslation {
+    description: string;
+    detailedDescription: string;
+    additionalInformation: string;
 }
 
 export interface HotelFormData {
-    // Basic Info (Matched to DB)
+    id?: number; // Optional ID for updates
+
+    // Basic Info (Direct DB columns)
     name: string;
     code: string;
-    typeDescription: string; // Was type
-    locationDescription: string; // Was locationCategory
-    officialRating: string; // Was ratingOfficial
-    ratingCommercial: string; // Unmatched -> hotelinfo
-    googleRating: string; // Was ratingGoogle
-    architectureStyle: string; // Unmatched -> hotelinfo
-    yearOpened: string; // Unmatched -> hotelinfo
-    yearRenovated: string; // Unmatched -> hotelinfo
-    yearRoomRenovated: string; // Unmatched -> hotelinfo
-    airportCode: string; // Unmatched -> hotelinfo
-    url: string; // Unmatched -> hotelinfo
+    typeDescription: string;
+    locationDescription: string;
+    officialRating: string;
+    ratingCommercial: string;
+    googleRating: string;
+    architectureStyle: string;
+    yearOpened: string;
+    yearRenovated: string;
+    yearRoomRenovated: string;
+    airportCode: string;
+    url: string;
 
-    // Location & Contact
-    address1: string; // Was address
-    cityName: string; // Was city
-    prefectureName: string; // Was prefecture
+    // Location & Contact (Direct DB columns)
+    address1: string;
+    cityName: string;
+    prefectureName: string;
     country: string;
-    zip: string; // Unmatched -> hotelinfo
+    zip: string;
     latitude: string;
     longitude: string;
-    telephone: string; // Unmatched -> hotelinfo
-    email: string; // Unmatched -> hotelinfo
-    communicationDetails: CommunicationDetail[]; // Unmatched -> hotelinfo
+    telephone: string;
+    email: string;
+    communicationDetails: CommunicationDetail[];
 
-    // Details
-    description: string; // Was mainDescription
-    detailedDescription: string; // Unmatched -> hotelinfo
-    additionalInformation: string; // Unmatched -> hotelinfo
-    numBuildings: string; // Unmatched -> hotelinfo
-    numRooms: string; // Unmatched -> hotelinfo
-    checkInTime: string; // Unmatched -> hotelinfo
-    checkOutTime: string; // Unmatched -> hotelinfo
+    // Details (Direct DB columns)
+    numBuildings: string;
+    numRooms: string;
+    checkInTime: string;
+    checkOutTime: string;
 
-    // Lists & Tags
-    searchTags: string; // Unmatched -> hotelinfo
-    facilities: string; // Unmatched -> hotelinfo
-    referencePoints: string; // Unmatched -> hotelinfo
-    nearbyPoints: string; // Unmatched -> hotelinfo
+    // Lists & Tags (Direct DB columns)
+    searchTags: string;
+    facilities: string;
+    referencePoints: string;
+    nearbyPoints: string;
+
+    // Translatable fields
+    translations: {
+        [languageCode: string]: HotelTranslation;
+    };
 
     // Rooms
-    rooms: RoomDetail[]; // Unmatched -> hotelinfo
+    rooms: RoomDetail[];
 
     // Media
-    media: MediaFile[]; // Unmatched -> hotelinfo (DB has imageThumbURL)
+    media: MediaFile[];
 }
 
 // DB Structure for reference
@@ -92,7 +107,26 @@ export interface HotelDB {
     longitude?: string | number;
     telephone?: string;
     email?: string;
-    description?: string;
-    hotelinfo?: string; // JSON string
+    hotelinfo?: string; // JSON string (deprecated)
     imageThumbURL?: string;
+    translations?: {
+        [languageCode: string]: HotelTranslation;
+    };
+    rooms?: RoomDetail[];
 }
+
+// Supported languages
+export interface Language {
+    code: string;
+    name: string;
+    nativeName: string;
+    isDefault: boolean;
+}
+
+export const SUPPORTED_LANGUAGES: Language[] = [
+    { code: 'en', name: 'English', nativeName: 'English', isDefault: true },
+    { code: 'fr', name: 'French', nativeName: 'Français', isDefault: false },
+    { code: 'de', name: 'German', nativeName: 'Deutsch', isDefault: false },
+    { code: 'ru', name: 'Russian', nativeName: 'Русский', isDefault: false },
+    { code: 'it', name: 'Italian', nativeName: 'Italiano', isDefault: false },
+];

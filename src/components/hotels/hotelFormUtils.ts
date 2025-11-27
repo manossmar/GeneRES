@@ -24,9 +24,6 @@ export const initialData: HotelFormData = {
     telephone: '',
     email: '',
     communicationDetails: [],
-    description: '',
-    detailedDescription: '',
-    additionalInformation: '',
     numBuildings: '',
     numRooms: '',
     checkInTime: '14:00',
@@ -35,6 +32,13 @@ export const initialData: HotelFormData = {
     facilities: '',
     referencePoints: '',
     nearbyPoints: '',
+    translations: {
+        en: { description: '', detailedDescription: '', additionalInformation: '' },
+        fr: { description: '', detailedDescription: '', additionalInformation: '' },
+        de: { description: '', detailedDescription: '', additionalInformation: '' },
+        ru: { description: '', detailedDescription: '', additionalInformation: '' },
+        it: { description: '', detailedDescription: '', additionalInformation: '' },
+    },
     rooms: [],
     media: [],
 };
